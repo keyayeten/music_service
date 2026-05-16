@@ -48,6 +48,7 @@
 - **Backend:** `FastAPI`, `Pydantic`, `Uvicorn`;
 - **Хранение:** `PostgreSQL` + `SQLAlchemy AsyncSession` (`asyncpg`) + `Alembic`;
 - **Кэш:** `Redis` (`redis.asyncio`);
+- **Admin:** `SQLAdmin` (Django-like панель для superuser на `/admin`);
 - **Тесты:** `pytest` (`unit` / `integration` / `api` / `e2e`);
 - **Архитектурный подход:** DDD-слои с правилами зависимостей `api -> application -> domain`, `infrastructure -> domain`.
 - **Execution model:** end-to-end async request path (`async def` handlers, async DI, async repositories, async cache I/O).
@@ -80,6 +81,26 @@ make init-env
 ```
 
 Команда создаст `.env` из `.env.example`, если файла еще нет.
+
+### Superuser admin panel (SQLAdmin)
+
+Панель управления ORM-моделями доступна только пользователям с `users.is_superuser = true` (отдельно от RBAC-роли `admin` для API).
+
+1. В `.env` включите `ADMIN_ENABLED=true` и задайте `ADMIN_SESSION_SECRET`.
+2. Примените миграции (`make migrate`).
+3. Создайте superuser (интерактивно или одной командой):
+
+```bash
+python -m backend.cli create-superuser
+# или без промптов:
+python -m backend.cli create-superuser --email admin@example.com --username admin --password 'YourPass123!'
+```
+
+Для уже существующего пользователя: `python -m backend.cli promote-superuser --email you@example.com`.
+
+4. Откройте `http://127.0.0.1:8000/admin` и войдите email + паролем учетной записи.
+
+`is_superuser` дает доступ только к админ-панели (session cookie). Staff-операции API (`moderator`, `admin`) по-прежнему проверяют роли в `user_roles` — см. `docs/rbac-and-authorization.md`.
 
 ### 2) Установить зависимости (для нативного запуска)
 

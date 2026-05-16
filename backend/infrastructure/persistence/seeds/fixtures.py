@@ -176,6 +176,7 @@ def _seed_identity_phase(session: Session, users_count: int, batch_size: int, rn
                 "email": f"fixture_{unique_tail}@example.com",
                 "username": f"fixture_{unique_tail}",
                 "password_hash": password_hash,
+                "is_superuser": "admin" in roles,
                 "status": status,
             }
         )

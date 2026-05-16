@@ -1,6 +1,11 @@
+import asyncio
 from collections.abc import Generator
 import socket
+import sys
 from urllib.parse import urlparse
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,12 +16,24 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 
 from backend.config.settings import get_settings
+from backend.infrastructure.persistence.database import close_database
 from backend.main import create_app
+from tests.async_tools import run_async
 
 
 @pytest.fixture(scope="session")
 def app():
     return create_app()
+
+
+@pytest.fixture()
+def admin_enabled_app(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("ADMIN_ENABLED", "true")
+    get_settings.cache_clear()
+    application = create_app()
+    yield application
+    run_async(close_database())
+    get_settings.cache_clear()
 
 
 def _service_ready(host: str, port: int) -> bool:

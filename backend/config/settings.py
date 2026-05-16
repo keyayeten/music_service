@@ -26,6 +26,9 @@ class Settings:
     jwt_access_ttl_minutes: int
     jwt_refresh_ttl_minutes: int
     log_level: str
+    admin_enabled: bool
+    admin_base_path: str
+    admin_session_secret: str
 
 
 def _get_bool(name: str, default: bool) -> bool:
@@ -94,4 +97,7 @@ def get_settings() -> Settings:
         jwt_access_ttl_minutes=_get_int("JWT_ACCESS_TTL_MINUTES", 15),
         jwt_refresh_ttl_minutes=_get_int("JWT_REFRESH_TTL_MINUTES", 43200),
         log_level=_get_log_level("LOG_LEVEL", "INFO"),
+        admin_enabled=_get_bool("ADMIN_ENABLED", False),
+        admin_base_path=os.getenv("ADMIN_BASE_PATH", "/admin").strip() or "/admin",
+        admin_session_secret=os.getenv("ADMIN_SESSION_SECRET") or os.getenv("JWT_SECRET", "change-me-in-production"),
     )

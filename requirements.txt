@@ -10,3 +10,5 @@ pytest
 pytest-asyncio
 httpx
 typer
+sqladmin>=0.20
+itsdangerous>=2.0

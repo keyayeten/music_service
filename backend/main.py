@@ -8,10 +8,12 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.middleware.sessions import SessionMiddleware
 
 from backend.api.system.router import router as system_router
 from backend.api.v1.router import router as api_v1_router
 from backend.config.settings import get_settings
+from backend.infrastructure.admin import init_admin
 from backend.infrastructure.cache.redis_client import close_redis_client, init_redis_client
 from backend.infrastructure.logging import configure_logging
 from backend.infrastructure.persistence.database import close_database, init_database
@@ -46,8 +48,11 @@ def create_app() -> FastAPI:
         docs_url=settings.swagger_docs_url if settings.docs_enabled else None,
         redoc_url=settings.redoc_url if settings.docs_enabled else None,
     )
+    if settings.admin_enabled:
+        application.add_middleware(SessionMiddleware, secret_key=settings.admin_session_secret)
     application.include_router(system_router)
     application.include_router(api_v1_router)
+    init_admin(application, settings)
     logger.info(
         "Application created: name=%s docs_enabled=%s",
         settings.app_name,
