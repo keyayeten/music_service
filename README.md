@@ -27,6 +27,12 @@ make init-env
 make install
 ```
 
+### 3) Применить миграции
+
+```bash
+make migrate
+```
+
 ## Режим A: полностью в Docker
 
 Запуск всех сервисов:
@@ -35,10 +41,18 @@ make install
 make up
 ```
 
+Применить миграции в контейнере API:
+
+```bash
+make migrate-docker
+```
+
 Проверка:
 
 ```bash
 curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/api/v1/health
+curl -X POST http://127.0.0.1:8000/api/v1/cache/ping
 ```
 
 Логи:
@@ -61,29 +75,64 @@ make down
 make infra-up
 ```
 
-2. Запустить API локально:
+2. Применить миграции:
+
+```bash
+make migrate
+```
+
+3. Запустить API локально:
 
 ```bash
 make run-native
 ```
 
-3. Проверка:
+4. Проверка:
 
 ```bash
 curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/api/v1/health
+curl -X POST http://127.0.0.1:8000/api/v1/cache/ping
 ```
 
-4. Остановить инфраструктуру:
+5. Остановить инфраструктуру:
 
 ```bash
 make infra-down
 ```
+
+## Конфиг окружения
+
+- В `.env.example` есть два ключевых URL:
+  - `DATABASE_URL`;
+  - `REDIS_URL`.
+- Для **native режима** API использует значения из `.env` (обычно `localhost`).
+- Для **Docker режима** сервис `api` в compose переопределяет:
+  - `DATABASE_URL` -> `...@postgres:5432/...`;
+  - `REDIS_URL` -> `redis://redis:6379/0`.
+- Дополнительные настройки:
+  - `DB_ECHO`, `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT`;
+  - `REDIS_KEY_PREFIX`, `REDIS_TTL_SECONDS`.
 
 ## Полезные команды
 
 - `make ps` — список контейнеров проекта.
 - `make infra-logs` — логи PostgreSQL и Redis.
 - `make logs` — логи всех сервисов compose.
+- `make migrate` — применить миграции Alembic локально.
+- `make migrate-docker` — применить миграции Alembic внутри контейнера API.
+
+## Troubleshooting
+
+- Если `make run-native` не подключается к БД/Redis, проверь `DATABASE_URL` и `REDIS_URL` в `.env` (для native должны быть `localhost`).
+- Если `make up` не поднимает API, проверь логи:
+  - `make logs`;
+  - `make infra-logs`.
+- Если заняты порты `5432`, `6379` или `8000`, поменяй `POSTGRES_PORT`, `REDIS_PORT`, `APP_PORT` в `.env`.
+- На Windows нужен `GNU Make`. Если `make` не установлен, запускай эквивалентные команды вручную:
+  - `docker compose -p music_service -f infra/docker/docker-compose.yml --env-file .env up --build -d`;
+  - `python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload`;
+  - `python -m alembic upgrade head`.
 
 ## Структура проекта
 
@@ -95,4 +144,5 @@ make infra-down
   - `backend/infrastructure/` — инфраструктурные адаптеры;
   - `backend/config/` — настройки.
 - `infra/docker/` — `Dockerfile` и `docker-compose.yml`.
+- `alembic/` и `alembic.ini` — миграции базы данных.
 - `docs/` — документация и диаграммы (включая `docs/backend-architecture.md`).

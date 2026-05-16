@@ -36,6 +36,8 @@ services:
       - "${APP_PORT:-8000}:8000"
     volumes:
       - ../../backend:/app/backend
+      - ../../alembic:/app/alembic
+      - ../../alembic.ini:/app/alembic.ini
     depends_on:
       postgres:
         condition: service_healthy

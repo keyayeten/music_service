@@ -9,13 +9,45 @@ class Settings:
     database_url: str
     redis_url: str
     api_v1_prefix: str
+    db_echo: bool
+    db_pool_size: int
+    db_max_overflow: int
+    db_pool_timeout: int
+    redis_key_prefix: str
+    redis_ttl_seconds: int
+
+
+def _get_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _get_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings(
         app_name=os.getenv("APP_NAME", "music_service"),
-        database_url=os.getenv("DATABASE_URL", ""),
-        redis_url=os.getenv("REDIS_URL", ""),
+        database_url=os.getenv(
+            "DATABASE_URL",
+            "postgresql+psycopg://music_user:music_password@localhost:5432/music_service",
+        ),
+        redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         api_v1_prefix=os.getenv("API_V1_PREFIX", "/api/v1"),
+        db_echo=_get_bool("DB_ECHO", False),
+        db_pool_size=_get_int("DB_POOL_SIZE", 5),
+        db_max_overflow=_get_int("DB_MAX_OVERFLOW", 10),
+        db_pool_timeout=_get_int("DB_POOL_TIMEOUT", 30),
+        redis_key_prefix=os.getenv("REDIS_KEY_PREFIX", "music_service"),
+        redis_ttl_seconds=_get_int("REDIS_TTL_SECONDS", 60),
     )
