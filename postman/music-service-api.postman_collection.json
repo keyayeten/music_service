@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "e2c24a77-0d18-45eb-a08c-bef336f95851",
-    "name": "music_service Stage 1-8 Identity/Auth+Profiles+Catalog+Library+Social+Discovery+Moderation+Hardening",
+    "name": "music_service API End-to-End (Stage 1-8)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "description": "Stage 1-8 manual checks for signup/login/refresh/me, profile management, catalog write/read, library, social, discovery, reports/moderation and Stage 8 cache smoke endpoints."
   },
