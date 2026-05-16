@@ -5,8 +5,13 @@ from uuid import UUID
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from backend.domain.identity.repositories import IdentityAuthRepository, IdentityUserAuthModel, IdentityUserReadModel
-from backend.infrastructure.persistence.models.identity import Role, User, UserRole
+from backend.domain.identity.repositories import (
+    ComposerProfileReadModel,
+    IdentityAuthRepository,
+    IdentityUserAuthModel,
+    IdentityUserReadModel,
+)
+from backend.infrastructure.persistence.models.identity import ComposerProfile, Role, User, UserRole, UserRoleProfile
 from backend.infrastructure.persistence.seeds.identity_roles import seed_identity_roles
 
 
@@ -67,6 +72,67 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
         )
         return list(self._session.execute(query).scalars())
 
+    def get_composer_profile_by_user_id(self, user_id: UUID) -> ComposerProfileReadModel | None:
+        profile = self._session.execute(select(ComposerProfile).where(ComposerProfile.user_id == user_id)).scalar_one_or_none()
+        return _to_composer_profile_read_model(profile) if profile else None
+
+    def upsert_composer_profile(
+        self,
+        *,
+        user_id: UUID,
+        display_name: str,
+        bio: str | None,
+        country_code: str | None,
+    ) -> ComposerProfileReadModel:
+        profile = self._session.execute(select(ComposerProfile).where(ComposerProfile.user_id == user_id)).scalar_one_or_none()
+        if profile is None:
+            profile = ComposerProfile(
+                user_id=user_id,
+                display_name=display_name,
+                bio=bio,
+                country_code=country_code,
+                verified=False,
+            )
+            self._session.add(profile)
+            self._session.flush()
+            return _to_composer_profile_read_model(profile)
+
+        profile.display_name = display_name
+        profile.bio = bio
+        profile.country_code = country_code
+        self._session.flush()
+        return _to_composer_profile_read_model(profile)
+
+    def upsert_user_role_profile(
+        self,
+        *,
+        user_id: UUID,
+        role_id: int,
+        profile_type: str,
+        profile_id: UUID,
+    ) -> None:
+        role_profile = self._session.execute(
+            select(UserRoleProfile).where(
+                UserRoleProfile.user_id == user_id,
+                UserRoleProfile.role_id == role_id,
+                UserRoleProfile.profile_type == profile_type,
+            )
+        ).scalar_one_or_none()
+        if role_profile is None:
+            self._session.add(
+                UserRoleProfile(
+                    user_id=user_id,
+                    role_id=role_id,
+                    profile_type=profile_type,
+                    profile_id=profile_id,
+                )
+            )
+            self._session.flush()
+            return
+
+        role_profile.profile_id = profile_id
+        self._session.flush()
+
 
 def _to_read_model(user: User) -> IdentityUserReadModel:
     return IdentityUserReadModel(
@@ -74,4 +140,15 @@ def _to_read_model(user: User) -> IdentityUserReadModel:
         email=user.email,
         username=user.username,
         status=user.status,
+    )
+
+
+def _to_composer_profile_read_model(profile: ComposerProfile) -> ComposerProfileReadModel:
+    return ComposerProfileReadModel(
+        id=profile.id,
+        user_id=profile.user_id,
+        display_name=profile.display_name,
+        bio=profile.bio,
+        country_code=profile.country_code,
+        verified=profile.verified,
     )

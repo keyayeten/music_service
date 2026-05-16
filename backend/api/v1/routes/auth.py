@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.api.deps import get_db_session, get_identity_auth_use_cases, get_user_roles
+from backend.api.deps import get_current_identity_user, get_db_session, get_identity_auth_use_cases, get_user_roles
 from backend.api.v1.schemas.auth import (
     AuthSuccessResponse,
     LoginRequest,
@@ -13,6 +13,7 @@ from backend.api.v1.schemas.auth import (
     UserProfileResponse,
 )
 from backend.application.identity.use_cases.auth import AuthResult, IdentityAuthUseCases
+from backend.domain.identity.repositories import IdentityUserReadModel
 from backend.domain.common.exceptions import AuthenticationError, ConflictError, ValidationError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -69,19 +70,9 @@ def refresh(
 
 @router.get("/me", response_model=UserProfileResponse)
 def me(
-    authorization: str | None = Header(default=None),
-    auth_use_cases: IdentityAuthUseCases = Depends(get_identity_auth_use_cases),
+    user: IdentityUserReadModel = Depends(get_current_identity_user),
     db_session: Session = Depends(get_db_session),
 ) -> UserProfileResponse:
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise _http_error(status.HTTP_401_UNAUTHORIZED, "authentication_error", "Bearer token is required.")
-
-    access_token = authorization.split(" ", 1)[1].strip()
-    try:
-        user = auth_use_cases.get_current_user(access_token)
-    except AuthenticationError as exc:
-        raise _http_error(status.HTTP_401_UNAUTHORIZED, "authentication_error", exc.message) from exc
-
     return UserProfileResponse(
         id=str(user.id),
         email=user.email,

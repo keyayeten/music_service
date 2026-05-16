@@ -20,6 +20,16 @@ class IdentityUserAuthModel:
     status: str
 
 
+@dataclass(frozen=True)
+class ComposerProfileReadModel:
+    id: UUID
+    user_id: UUID
+    display_name: str
+    bio: str | None
+    country_code: str | None
+    verified: bool
+
+
 class IdentityUserRepository(Protocol):
     def get_by_id(self, user_id: UUID) -> IdentityUserReadModel | None:
         """Return user projection or None if not found."""
@@ -52,3 +62,26 @@ class IdentityAuthRepository(Protocol):
 
     def get_user_role_codes(self, user_id: UUID) -> list[str]:
         """List user role codes."""
+
+    def get_composer_profile_by_user_id(self, user_id: UUID) -> ComposerProfileReadModel | None:
+        """Find composer profile by user id."""
+
+    def upsert_composer_profile(
+        self,
+        *,
+        user_id: UUID,
+        display_name: str,
+        bio: str | None,
+        country_code: str | None,
+    ) -> ComposerProfileReadModel:
+        """Create or update user composer profile."""
+
+    def upsert_user_role_profile(
+        self,
+        *,
+        user_id: UUID,
+        role_id: int,
+        profile_type: str,
+        profile_id: UUID,
+    ) -> None:
+        """Create or update polymorphic role profile reference."""

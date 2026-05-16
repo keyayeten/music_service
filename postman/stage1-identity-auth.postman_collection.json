@@ -1,9 +1,9 @@
 {
   "info": {
     "_postman_id": "e2c24a77-0d18-45eb-a08c-bef336f95851",
-    "name": "music_service Stage 1 Identity/Auth",
+    "name": "music_service Stage 1-2 Identity/Auth+Profiles",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Stage 1 manual checks for signup/login/refresh/me."
+    "description": "Stage 1-2 manual checks for signup/login/refresh/me and profile management."
   },
   "variable": [
     {
@@ -29,6 +29,18 @@
     {
       "key": "refreshToken",
       "value": ""
+    },
+    {
+      "key": "displayName",
+      "value": "Stage2 Composer"
+    },
+    {
+      "key": "bio",
+      "value": "Composer profile from Postman collection."
+    },
+    {
+      "key": "countryCode",
+      "value": "UA"
     }
   ],
   "item": [
@@ -198,6 +210,99 @@
               "var body = pm.response.json();",
               "pm.collectionVariables.set('accessToken', body.tokens.access_token);",
               "pm.collectionVariables.set('refreshToken', body.tokens.refresh_token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get My Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/profiles/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "profiles",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.expect(body).to.have.property('email');",
+              "pm.expect(body).to.have.property('roles');",
+              "pm.expect(body).to.have.property('composer_profile');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update My Profile",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/profiles/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "profiles",
+            "me"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"display_name\": \"{{displayName}}\",\n  \"bio\": \"{{bio}}\",\n  \"country_code\": \"{{countryCode}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200 or 403', function () {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+              "});",
+              "var body = pm.response.json();",
+              "if (pm.response.code === 200) {",
+              "  pm.expect(body).to.have.property('composer_profile');",
+              "  pm.expect(body.composer_profile).to.have.property('display_name');",
+              "} else {",
+              "  pm.expect(body.detail.code).to.eql('authorization_error');",
+              "}"
             ],
             "type": "text/javascript"
           }

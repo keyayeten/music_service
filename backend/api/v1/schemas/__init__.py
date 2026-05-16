@@ -6,6 +6,7 @@ from backend.api.v1.schemas.auth import (
     SignupRequest,
     UserProfileResponse,
 )
+from backend.api.v1.schemas.profiles import ComposerProfileResponse, MyProfileResponse, UpdateMyProfileRequest
 
 __all__ = [
     "SignupRequest",
@@ -14,5 +15,8 @@ __all__ = [
     "UserProfileResponse",
     "AuthSuccessResponse",
     "ErrorResponse",
+    "ComposerProfileResponse",
+    "MyProfileResponse",
+    "UpdateMyProfileRequest",
 ]
 """Pydantic schemas for v1 HTTP contracts."""

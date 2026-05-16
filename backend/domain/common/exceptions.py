@@ -24,3 +24,11 @@ class ConflictError(DomainError):
     def __init__(self, message: str) -> None:
         super().__init__(message)
         self.message = message
+
+
+class AuthorizationError(DomainError):
+    """Action is forbidden for current authenticated user."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
