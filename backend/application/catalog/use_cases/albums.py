@@ -5,6 +5,7 @@ from uuid import UUID
 
 from backend.domain.catalog.repositories import AlbumListFilter, AlbumReadModel, CatalogRepository
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
+from backend.application.security.permissions import MODERATION_ROLES, ensure_composer_access
 
 ALBUM_STATUSES = {"draft", "pending_review", "published", "rejected", "hidden"}
 COMPOSER_ALLOWED_PUBLISH_TRANSITIONS = {
@@ -21,9 +22,6 @@ MODERATOR_ALLOWED_TRANSITIONS = {
     ("pending_review", "rejected"),
     ("published", "hidden"),
 }
-MODERATION_ROLES = {"admin", "moderator"}
-
-
 class CatalogAlbumUseCases:
     def __init__(self, repository: CatalogRepository) -> None:
         self._repository = repository
@@ -147,10 +145,9 @@ class CatalogAlbumUseCases:
         return self._repository.list_albums(filters)
 
     def _require_composer_profile(self, actor_user_id: UUID) -> UUID:
+        roles = self._repository.get_user_role_codes(actor_user_id)
         composer_profile_id = self._repository.get_composer_profile_id_by_user_id(actor_user_id)
-        if composer_profile_id is None:
-            raise AuthorizationError("Composer profile is required.")
-        return composer_profile_id
+        return ensure_composer_access(actor_user_id, actor_roles=roles, composer_profile_id=composer_profile_id)
 
     def _require_owned_album(self, album_id: UUID, composer_profile_id: UUID) -> AlbumReadModel:
         album = self._repository.get_album_by_id(album_id)

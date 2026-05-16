@@ -100,3 +100,35 @@ def test_replace_album_tracks_requires_owner_permissions(client, db_session, red
     )
     assert forbidden_response.status_code == 403
     assert forbidden_response.json()["detail"]["code"] == "authorization_error"
+
+
+@pytest.mark.api
+def test_create_track_requires_composer_role_even_with_existing_profile(client, db_session, redis_client) -> None:
+    signup_payload = _signup(client)
+    user_id = signup_payload["user"]["id"]
+    access_token = signup_payload["tokens"]["access_token"]
+    db_session.execute(
+        text(
+            """
+            INSERT INTO composer_profiles (id, user_id, display_name, bio, country_code, verified)
+            VALUES (:id, :user_id, :display_name, :bio, :country_code, false)
+            ON CONFLICT (user_id) DO NOTHING
+            """
+        ),
+        {
+            "id": str(uuid4()),
+            "user_id": user_id,
+            "display_name": "No role composer",
+            "bio": "Inserted directly for RBAC test",
+            "country_code": "UA",
+        },
+    )
+    db_session.commit()
+
+    response = client.post(
+        "/api/v1/catalog/tracks",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"title": "Track without composer role", "description": None, "duration_seconds": 180},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "authorization_error"

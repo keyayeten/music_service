@@ -27,6 +27,12 @@ class _FakeCatalogRepository:
             created_at=datetime.now(UTC),
             track_items=[],
         )
+        self.role_codes = {"composer", "user"}
+
+    def get_user_role_codes(self, user_id: UUID) -> list[str]:
+        if user_id == self.user_id:
+            return sorted(self.role_codes)
+        return ["user"]
 
     def get_composer_profile_id_by_user_id(self, user_id: UUID) -> UUID | None:
         if user_id == self.user_id:
@@ -139,3 +145,13 @@ def test_moderate_album_requires_privileged_role() -> None:
 
     with pytest.raises(AuthorizationError):
         use_cases.moderate_album(["user"], album_id=repository.album_id, target_status="published")
+
+
+@pytest.mark.unit
+def test_create_album_requires_composer_role() -> None:
+    repository = _FakeCatalogRepository()
+    repository.role_codes = {"user"}
+    use_cases = CatalogAlbumUseCases(repository=repository)
+
+    with pytest.raises(AuthorizationError):
+        use_cases.create_album(repository.user_id, title="Album", description=None, release_date=None)

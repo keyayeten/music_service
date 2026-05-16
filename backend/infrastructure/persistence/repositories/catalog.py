@@ -17,12 +17,21 @@ from backend.domain.catalog.repositories import (
     TrackReadModel,
 )
 from backend.infrastructure.persistence.models.catalog import Album, AlbumTrack, Genre, Track, TrackAuthor, TrackGenre
-from backend.infrastructure.persistence.models.identity import ComposerProfile
+from backend.infrastructure.persistence.models.identity import ComposerProfile, Role, UserRole
 
 
 class SqlAlchemyCatalogRepository(CatalogRepository):
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def get_user_role_codes(self, user_id: UUID) -> list[str]:
+        query = (
+            select(Role.code)
+            .join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == user_id)
+            .order_by(Role.code.asc())
+        )
+        return list(self._session.execute(query).scalars())
 
     def get_composer_profile_id_by_user_id(self, user_id: UUID) -> UUID | None:
         return self._session.execute(

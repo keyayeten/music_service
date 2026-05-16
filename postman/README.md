@@ -1,6 +1,6 @@
 # Postman collections
 
-`stage1-identity-auth.postman_collection.json` содержит ручной сценарий Stage 1 + Stage 2 + Stage 3 + Stage 4 + Stage 5 + Stage 6:
+`stage1-identity-auth.postman_collection.json` содержит ручной сценарий Stage 1 + Stage 2 + Stage 3 + Stage 4 + Stage 5 + Stage 6 + Stage 7:
 
 1. `Signup`
 2. `Login (username/email)`
@@ -37,6 +37,13 @@
 33. `Get Public Track (Counters After Social)`
 34. `Click External Link`
 35. `Get Track Recommendations (Optional Auth)`
+36. `Login Moderator (username/email)`
+37. `Create Report`
+38. `List Reports As User (Forbidden)`
+39. `List Reports As Moderator`
+40. `Get Report By Id As Moderator`
+41. `Set Report Status In Review`
+42. `Set Report Status Resolved`
 
 Перед запуском:
 
@@ -56,3 +63,10 @@
 - `Get Track Recommendations (Optional Auth)` можно запускать как с `Authorization`, так и без него:
   - c токеном ожидается персонализированная выдача при наличии истории;
   - без токена возвращается fallback `top published`.
+- для Stage 7 заранее создай отдельного пользователя-модератора:
+  - зарегистрируй пользователя с `moderatorUsername` / `moderatorEmail`;
+  - назначь ему роль `moderator` в БД (например, SQL insert в `user_roles`);
+  - после этого запрос `Login Moderator (username/email)` заполнит `moderatorAccessToken`.
+- `Create Report` использует `target_id = {{trackId}}`, поэтому `trackId` должен ссылаться на существующий трек.
+- `List Reports As User (Forbidden)` должен вернуть `403` и подтвердить RBAC-ограничение.
+- `Set Report Status In Review` и `Set Report Status Resolved` запускай строго по порядку для проверки lifecycle `open -> in_review -> resolved`.

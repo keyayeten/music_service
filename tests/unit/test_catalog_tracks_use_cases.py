@@ -35,6 +35,12 @@ class _FakeCatalogRepository:
             ],
             genre_codes=[],
         )
+        self.role_codes = {"composer", "user"}
+
+    def get_user_role_codes(self, user_id: UUID) -> list[str]:
+        if user_id == self.user_id:
+            return sorted(self.role_codes)
+        return ["user"]
 
     def get_composer_profile_id_by_user_id(self, user_id: UUID) -> UUID | None:
         if user_id == self.user_id:
@@ -174,3 +180,13 @@ def test_set_track_authors_requires_current_composer_in_author_list() -> None:
 
     with pytest.raises(ValidationError):
         use_cases.set_track_authors(repository.user_id, track_id=repository.track_id, author_profile_ids=[uuid4()])
+
+
+@pytest.mark.unit
+def test_create_track_requires_composer_role() -> None:
+    repository = _FakeCatalogRepository()
+    repository.role_codes = {"user"}
+    use_cases = CatalogTrackUseCases(repository=repository)
+
+    with pytest.raises(AuthorizationError):
+        use_cases.create_track(repository.user_id, title="Track", description=None, duration_seconds=120)

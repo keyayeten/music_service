@@ -65,6 +65,9 @@ class AlbumListFilter:
 
 
 class CatalogRepository(Protocol):
+    def get_user_role_codes(self, user_id: UUID) -> list[str]:
+        """List role codes assigned to user."""
+
     def get_composer_profile_id_by_user_id(self, user_id: UUID) -> UUID | None:
         """Resolve composer profile id for identity user."""
 

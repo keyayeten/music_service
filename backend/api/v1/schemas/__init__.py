@@ -39,6 +39,7 @@ from backend.api.v1.schemas.social import (
     LikeResponse,
     ListCommentsResponse,
 )
+from backend.api.v1.schemas.reports import CreateReportRequest, ListReportsResponse, ReportResponse, UpdateReportStatusRequest
 
 __all__ = [
     "SignupRequest",
@@ -76,5 +77,9 @@ __all__ = [
     "CommentResponse",
     "CommentWithCountersResponse",
     "ListCommentsResponse",
+    "CreateReportRequest",
+    "UpdateReportStatusRequest",
+    "ReportResponse",
+    "ListReportsResponse",
 ]
 """Pydantic schemas for v1 HTTP contracts."""

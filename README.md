@@ -131,7 +131,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/auth/signup -H "Content-Type: applicat
 curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -d "{\"login\":\"user1\",\"password\":\"StrongPassword123!\"}"
 ```
 
-Для ручного тестирования добавлена Postman-коллекция: `postman/stage1-identity-auth.postman_collection.json` (Stage 1-6).
+Для ручного тестирования добавлена Postman-коллекция: `postman/stage1-identity-auth.postman_collection.json` (Stage 1-7).
 
 ## Catalog API (Stage 3)
 
@@ -164,6 +164,11 @@ curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: applicati
 3. Создай трек `POST /api/v1/catalog/tracks` и опубликуй `POST /publish`
 4. Создай альбом `POST /api/v1/catalog/albums`, добавь трек `PUT /tracks`, опубликуй `POST /publish`
 5. Проверь анонимное чтение через `GET /api/v1/catalog/tracks` и `GET /api/v1/catalog/albums`
+
+RBAC правило Stage 7 для write-каталога:
+
+- для операций композитора требуется одновременно роль `composer` и существующий `composer_profile`;
+- если роль есть, но профиль отсутствует (или наоборот) — вернется `403 authorization_error`.
 
 ## Social API (Stage 5)
 
@@ -206,6 +211,25 @@ curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: applicati
 - Режим записи событий — строгий транзакционный: если запись события не удалась, основной action откатывается.
 - Ответ рекомендаций детерминирован на одинаковом наборе данных.
 
+## Moderation and Reports API (Stage 7)
+
+Доступные endpoints:
+
+- `POST /api/v1/reports` — создать жалобу (`target_type`: `track|album|playlist|comment`).
+- `GET /api/v1/reports` — список жалоб (доступ staff, фильтры `status`, `target_type`).
+- `GET /api/v1/reports/{report_id}` — детальная жалоба (доступ staff).
+- `POST /api/v1/reports/{report_id}/status` — смена статуса (`open -> in_review -> resolved|rejected`, доступ staff).
+
+Ключевые правила Stage 7:
+
+- Для staff-операций жалоб требуются роли `admin` или `moderator`.
+- При каждой смене статуса жалобы пишется аудит в таблицу `moderation_actions`.
+- Формат ошибок авторизации единый:
+  - `401 authentication_error` — нет/невалидный токен;
+  - `403 authorization_error` — роль пользователя не подходит для операции.
+
+Матрица прав по write-операциям: `docs/rbac-and-authorization.md`.
+
 ## Полезные команды
 
 - `make ps` — список контейнеров проекта.
@@ -242,5 +266,5 @@ curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: applicati
   - `backend/config/` — настройки.
 - `infra/docker/` — `Dockerfile` и `docker-compose.yml`.
 - `alembic/` и `alembic.ini` — миграции базы данных.
-- `docs/` — документация и диаграммы (включая `docs/backend-architecture.md`, `docs/testing-strategy.md`, `docs/implementation-plan.md`, `docs/implementation-issues-checklist.md`).
+- `docs/` — документация и диаграммы (включая `docs/backend-architecture.md`, `docs/testing-strategy.md`, `docs/implementation-plan.md`, `docs/implementation-issues-checklist.md`, `docs/rbac-and-authorization.md`).
 - `postman/` — коллекции Postman для ручного тестирования API.
