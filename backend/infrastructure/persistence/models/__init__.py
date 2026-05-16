@@ -12,6 +12,7 @@ from backend.infrastructure.persistence.models.catalog import (
     TrackAuthor,
     TrackGenre,
 )
+from backend.infrastructure.persistence.models.discovery import ExternalLinkClick, UserTrackEvent
 from backend.infrastructure.persistence.models.identity import ComposerProfile, Role, User, UserRole, UserRoleProfile
 from backend.infrastructure.persistence.models.library import LibraryItem, Playlist, PlaylistTrack
 from backend.infrastructure.persistence.models.social import Comment, Like
@@ -34,6 +35,8 @@ __all__ = [
     "TrackGenre",
     "Tag",
     "EntityTag",
+    "UserTrackEvent",
+    "ExternalLinkClick",
     "Playlist",
     "PlaylistTrack",
     "LibraryItem",

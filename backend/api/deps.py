@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.application.catalog.use_cases.albums import CatalogAlbumUseCases
 from backend.application.catalog.use_cases.tracks import CatalogTrackUseCases
+from backend.application.discovery.use_cases.events_and_recommendations import DiscoveryUseCases
 from backend.application.identity.use_cases.auth import IdentityAuthUseCases
 from backend.application.identity.use_cases.profiles import IdentityProfilesUseCases
 from backend.application.library.use_cases.items import LibraryItemUseCases
@@ -16,6 +17,7 @@ from backend.config.settings import Settings, get_settings
 from backend.domain.common.exceptions import AuthenticationError
 from backend.domain.identity.repositories import IdentityUserReadModel
 from backend.infrastructure.persistence.repositories.catalog import SqlAlchemyCatalogRepository
+from backend.infrastructure.persistence.repositories.discovery import SqlAlchemyDiscoveryRepository
 from backend.infrastructure.persistence.repositories.identity_auth import SqlAlchemyIdentityAuthRepository
 from backend.infrastructure.persistence.repositories.library import SqlAlchemyLibraryRepository
 from backend.infrastructure.persistence.repositories.social import SqlAlchemySocialRepository
@@ -76,6 +78,11 @@ def get_social_interaction_use_cases(db_session: Session = Depends(get_db_sessio
     return SocialInteractionUseCases(repository=repository)
 
 
+def get_discovery_use_cases(db_session: Session = Depends(get_db_session)) -> DiscoveryUseCases:
+    repository = SqlAlchemyDiscoveryRepository(db_session)
+    return DiscoveryUseCases(repository=repository)
+
+
 def get_current_identity_user(
     authorization: str | None = Header(default=None),
     auth_use_cases: IdentityAuthUseCases = Depends(get_identity_auth_use_cases),
@@ -90,6 +97,19 @@ def get_current_identity_user(
 def get_user_roles(db_session: Session, user_id: str) -> list[str]:
     repository = SqlAlchemyIdentityAuthRepository(db_session)
     return repository.get_user_role_codes(UUID(user_id))
+
+
+def get_optional_identity_user(
+    authorization: str | None = Header(default=None),
+    auth_use_cases: IdentityAuthUseCases = Depends(get_identity_auth_use_cases),
+) -> IdentityUserReadModel | None:
+    if authorization is None:
+        return None
+    access_token = extract_bearer_token(authorization)
+    try:
+        return auth_use_cases.get_current_user(access_token)
+    except AuthenticationError as exc:
+        raise _http_error(status.HTTP_401_UNAUTHORIZED, "authentication_error", exc.message) from exc
 
 
 def extract_bearer_token(authorization: str | None) -> str:

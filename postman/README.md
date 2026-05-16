@@ -1,6 +1,6 @@
 # Postman collections
 
-`stage1-identity-auth.postman_collection.json` содержит ручной сценарий Stage 1 + Stage 2 + Stage 3 + Stage 4 + Stage 5:
+`stage1-identity-auth.postman_collection.json` содержит ручной сценарий Stage 1 + Stage 2 + Stage 3 + Stage 4 + Stage 5 + Stage 6:
 
 1. `Signup`
 2. `Login (username/email)`
@@ -35,6 +35,8 @@
 31. `List Library Favorites (After Like Sync)`
 32. `Unlike Track`
 33. `Get Public Track (Counters After Social)`
+34. `Click External Link`
+35. `Get Track Recommendations (Optional Auth)`
 
 Перед запуском:
 
@@ -50,3 +52,7 @@
 - `Reply To Comment` использует `commentId`, который автоматически заполняется после запроса `Comment Track`.
 - Запросы чтения комментариев Stage 5 (`List Track Comments`, `Get Track Comment By Id`) требуют `Authorization`.
 - `List Library Favorites (After Like Sync)` позволяет проверить автосинхронизацию лайка в `library_items`.
+- перед `Click External Link` убедись, что `externalLinkId` заполнен UUID ссылки из `external_links` для опубликованного трека.
+- `Get Track Recommendations (Optional Auth)` можно запускать как с `Authorization`, так и без него:
+  - c токеном ожидается персонализированная выдача при наличии истории;
+  - без токена возвращается fallback `top published`.

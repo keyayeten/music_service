@@ -10,7 +10,9 @@ from backend.api.deps import (
     get_catalog_album_use_cases,
     get_catalog_track_use_cases,
     get_current_identity_user,
+    get_discovery_use_cases,
     get_db_session,
+    get_optional_identity_user,
     get_user_roles,
 )
 from backend.api.v1.schemas.catalog import (
@@ -27,8 +29,10 @@ from backend.api.v1.schemas.catalog import (
     UpdateAlbumRequest,
     UpdateTrackRequest,
 )
+from backend.api.v1.schemas.discovery import ExternalLinkClickResponse
 from backend.application.catalog.use_cases.albums import CatalogAlbumUseCases
 from backend.application.catalog.use_cases.tracks import CatalogTrackUseCases
+from backend.application.discovery.use_cases.events_and_recommendations import DiscoveryUseCases
 from backend.domain.catalog.repositories import AlbumReadModel, TrackReadModel
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
 from backend.domain.identity.repositories import IdentityUserReadModel
@@ -181,6 +185,9 @@ def list_tracks(
     genre: str | None = Query(default=None),
     author_id: UUID | None = Query(default=None),
     use_cases: CatalogTrackUseCases = Depends(get_catalog_track_use_cases),
+    user: IdentityUserReadModel | None = Depends(get_optional_identity_user),
+    discovery_use_cases: DiscoveryUseCases = Depends(get_discovery_use_cases),
+    db_session: Session = Depends(get_db_session),
 ) -> ListTracksResponse:
     try:
         items = use_cases.list_tracks(
@@ -189,18 +196,54 @@ def list_tracks(
             author_id=author_id,
             include_unpublished=False,
         )
+        if user is not None and items:
+            discovery_use_cases.record_view_events(
+                user.id,
+                track_ids=[item.id for item in items],
+            )
+            db_session.commit()
     except ValidationError as exc:
+        db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     return ListTracksResponse(items=[_to_track_response(item) for item in items])
 
 
 @router.get("/tracks/{track_id}", response_model=TrackResponse)
-def get_track(track_id: UUID, use_cases: CatalogTrackUseCases = Depends(get_catalog_track_use_cases)) -> TrackResponse:
+def get_track(
+    track_id: UUID,
+    use_cases: CatalogTrackUseCases = Depends(get_catalog_track_use_cases),
+    user: IdentityUserReadModel | None = Depends(get_optional_identity_user),
+    discovery_use_cases: DiscoveryUseCases = Depends(get_discovery_use_cases),
+    db_session: Session = Depends(get_db_session),
+) -> TrackResponse:
     try:
         item = use_cases.get_track(track_id, include_unpublished=False)
+        if user is not None:
+            discovery_use_cases.record_view_events(user.id, track_ids=[item.id])
+            db_session.commit()
     except ValidationError as exc:
+        db_session.rollback()
         raise _http_error(status.HTTP_404_NOT_FOUND, "not_found", exc.message) from exc
     return _to_track_response(item)
+
+
+@router.post("/external-links/{external_link_id}/click", response_model=ExternalLinkClickResponse)
+def click_external_link(
+    external_link_id: UUID,
+    user: IdentityUserReadModel = Depends(get_current_identity_user),
+    discovery_use_cases: DiscoveryUseCases = Depends(get_discovery_use_cases),
+    db_session: Session = Depends(get_db_session),
+) -> ExternalLinkClickResponse:
+    try:
+        discovery_use_cases.record_external_click_event(
+            user.id,
+            external_link_id=external_link_id,
+        )
+        db_session.commit()
+    except ValidationError as exc:
+        db_session.rollback()
+        raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
+    return ExternalLinkClickResponse(status="recorded", external_link_id=str(external_link_id))
 
 
 @router.post("/albums", response_model=AlbumResponse, status_code=status.HTTP_201_CREATED)

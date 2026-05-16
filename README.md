@@ -131,7 +131,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/auth/signup -H "Content-Type: applicat
 curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -d "{\"login\":\"user1\",\"password\":\"StrongPassword123!\"}"
 ```
 
-Для ручного тестирования добавлена Postman-коллекция: `postman/stage1-identity-auth.postman_collection.json` (Stage 1-5).
+Для ручного тестирования добавлена Postman-коллекция: `postman/stage1-identity-auth.postman_collection.json` (Stage 1-6).
 
 ## Catalog API (Stage 3)
 
@@ -188,6 +188,23 @@ curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: applicati
 - Счетчики `likes_count` и `comments_count` обновляются в той же транзакции и не уходят ниже нуля.
 - Для `unlisted` плейлистов комментарии/лайки доступны по прямому `target_id` (deep link), но не через публичный список.
 - Карточки контента Stage 3/4 (`GET /catalog/tracks/{id}`, `GET /catalog/albums/{id}`, `GET /library/playlists/public/{id}`) возвращают актуальные счетчики.
+
+## Discovery API (Stage 6)
+
+Доступные endpoints:
+
+- `POST /api/v1/catalog/external-links/{external_link_id}/click` — фиксирует `external_click`, пишет в `external_link_clicks`, увеличивает `tracks.plays_count`.
+- `GET /api/v1/discovery/recommendations/tracks` — базовые рекомендации top-N:
+  - с Bearer token: персонализированная выдача по `user_track_events`;
+  - без токена (или без истории): fallback на глобальный `top published`.
+
+Ключевые правила Stage 6:
+
+- События `view`, `like`, `save`, `comment`, `playlist_add`, `external_click` пишутся в `user_track_events`.
+- `save` для `album` и `playlist` маппится на связанные `track_id` (событие на каждый трек).
+- Для `view` события пишутся на `GET /catalog/tracks` и `GET /catalog/tracks/{id}`, если пользователь авторизован.
+- Режим записи событий — строгий транзакционный: если запись события не удалась, основной action откатывается.
+- Ответ рекомендаций детерминирован на одинаковом наборе данных.
 
 ## Полезные команды
 

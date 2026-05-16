@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from backend.api.deps import get_current_identity_user, get_db_session, get_social_interaction_use_cases
+from backend.api.deps import get_current_identity_user, get_db_session, get_discovery_use_cases, get_social_interaction_use_cases
 from backend.api.v1.schemas.social import (
     CommentResponse,
     CommentWithCountersResponse,
@@ -13,6 +13,7 @@ from backend.api.v1.schemas.social import (
     LikeResponse,
     ListCommentsResponse,
 )
+from backend.application.discovery.use_cases.events_and_recommendations import DiscoveryUseCases
 from backend.application.social.use_cases.interactions import SocialInteractionUseCases
 from backend.domain.common.exceptions import ValidationError
 from backend.domain.identity.repositories import IdentityUserReadModel
@@ -27,10 +28,16 @@ def like_target(
     target_id: UUID,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: SocialInteractionUseCases = Depends(get_social_interaction_use_cases),
+    discovery_use_cases: DiscoveryUseCases = Depends(get_discovery_use_cases),
     db_session: Session = Depends(get_db_session),
 ) -> LikeResponse:
     try:
         result = use_cases.like(user.id, target_type=target_type, target_id=target_id)
+        discovery_use_cases.record_like_events(
+            user.id,
+            target_type=target_type,
+            target_id=target_id,
+        )
         db_session.commit()
     except ValidationError as exc:
         db_session.rollback()
@@ -62,6 +69,7 @@ def comment_target(
     payload: CreateCommentRequest,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: SocialInteractionUseCases = Depends(get_social_interaction_use_cases),
+    discovery_use_cases: DiscoveryUseCases = Depends(get_discovery_use_cases),
     db_session: Session = Depends(get_db_session),
 ) -> CommentWithCountersResponse:
     try:
@@ -72,6 +80,11 @@ def comment_target(
             target_id=target_id,
             body=payload.body,
             parent_comment_id=parent_comment_id,
+        )
+        discovery_use_cases.record_comment_events(
+            user.id,
+            target_type=target_type,
+            target_id=target_id,
         )
         db_session.commit()
     except ValueError as exc:

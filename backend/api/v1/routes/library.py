@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from backend.api.deps import (
     get_current_identity_user,
     get_db_session,
+    get_discovery_use_cases,
     get_library_item_use_cases,
     get_library_playlist_use_cases,
 )
@@ -25,6 +26,7 @@ from backend.api.v1.schemas.library import (
 )
 from backend.application.library.use_cases.items import LibraryItemUseCases
 from backend.application.library.use_cases.playlists import LibraryPlaylistUseCases
+from backend.application.discovery.use_cases.events_and_recommendations import DiscoveryUseCases
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
 from backend.domain.identity.repositories import IdentityUserReadModel
 from backend.domain.library.repositories import LibraryItemReadModel, PlaylistReadModel
@@ -133,15 +135,18 @@ def add_playlist_track(
     payload: AddPlaylistTrackRequest,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
+    discovery_use_cases: DiscoveryUseCases = Depends(get_discovery_use_cases),
     db_session: Session = Depends(get_db_session),
 ) -> PlaylistResponse:
     try:
+        track_id = UUID(payload.track_id)
         result = use_cases.add_track(
             user.id,
             playlist_id=playlist_id,
-            track_id=UUID(payload.track_id),
+            track_id=track_id,
             position=payload.position,
         )
+        discovery_use_cases.record_playlist_add_event(user.id, track_id=track_id)
         db_session.commit()
     except ValueError as exc:
         db_session.rollback()
@@ -235,14 +240,21 @@ def add_library_item(
     payload: AddLibraryItemRequest,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryItemUseCases = Depends(get_library_item_use_cases),
+    discovery_use_cases: DiscoveryUseCases = Depends(get_discovery_use_cases),
     db_session: Session = Depends(get_db_session),
 ) -> LibraryItemResponse:
     try:
+        item_id = UUID(payload.item_id)
         result = use_cases.add_item(
             user.id,
             item_type=payload.item_type,
-            item_id=UUID(payload.item_id),
+            item_id=item_id,
             section=payload.section,
+        )
+        discovery_use_cases.record_save_events(
+            user.id,
+            item_type=payload.item_type,
+            item_id=item_id,
         )
         db_session.commit()
     except ValueError as exc:
