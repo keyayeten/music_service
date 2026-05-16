@@ -5,11 +5,14 @@ from fastapi import Depends, Header, HTTPException, status
 from redis import Redis
 from sqlalchemy.orm import Session
 
+from backend.application.catalog.use_cases.albums import CatalogAlbumUseCases
+from backend.application.catalog.use_cases.tracks import CatalogTrackUseCases
 from backend.application.identity.use_cases.auth import IdentityAuthUseCases
 from backend.application.identity.use_cases.profiles import IdentityProfilesUseCases
 from backend.config.settings import Settings, get_settings
 from backend.domain.common.exceptions import AuthenticationError
 from backend.domain.identity.repositories import IdentityUserReadModel
+from backend.infrastructure.persistence.repositories.catalog import SqlAlchemyCatalogRepository
 from backend.infrastructure.persistence.repositories.identity_auth import SqlAlchemyIdentityAuthRepository
 from backend.infrastructure.cache.redis_client import get_redis_client
 from backend.infrastructure.persistence.database import get_session
@@ -41,6 +44,16 @@ def get_identity_auth_use_cases(db_session: Session = Depends(get_db_session)) -
 def get_identity_profiles_use_cases(db_session: Session = Depends(get_db_session)) -> IdentityProfilesUseCases:
     repository = SqlAlchemyIdentityAuthRepository(db_session)
     return IdentityProfilesUseCases(repository=repository)
+
+
+def get_catalog_track_use_cases(db_session: Session = Depends(get_db_session)) -> CatalogTrackUseCases:
+    repository = SqlAlchemyCatalogRepository(db_session)
+    return CatalogTrackUseCases(repository=repository)
+
+
+def get_catalog_album_use_cases(db_session: Session = Depends(get_db_session)) -> CatalogAlbumUseCases:
+    repository = SqlAlchemyCatalogRepository(db_session)
+    return CatalogAlbumUseCases(repository=repository)
 
 
 def get_current_identity_user(

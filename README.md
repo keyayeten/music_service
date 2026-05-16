@@ -133,6 +133,38 @@ curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: applicati
 
 Для ручного тестирования добавлена Postman-коллекция: `postman/stage1-identity-auth.postman_collection.json`.
 
+## Catalog API (Stage 3)
+
+Доступные endpoints:
+
+- write для композитора:
+  - `POST /api/v1/catalog/tracks`
+  - `PATCH /api/v1/catalog/tracks/{track_id}`
+  - `PUT /api/v1/catalog/tracks/{track_id}/authors`
+  - `POST /api/v1/catalog/tracks/{track_id}/publish`
+  - `POST /api/v1/catalog/tracks/{track_id}/submit-review`
+  - `POST /api/v1/catalog/albums`
+  - `PATCH /api/v1/catalog/albums/{album_id}`
+  - `PUT /api/v1/catalog/albums/{album_id}/tracks`
+  - `POST /api/v1/catalog/albums/{album_id}/publish`
+  - `POST /api/v1/catalog/albums/{album_id}/submit-review`
+- moderation:
+  - `POST /api/v1/catalog/tracks/{track_id}/moderate`
+  - `POST /api/v1/catalog/albums/{album_id}/moderate`
+- публичное чтение:
+  - `GET /api/v1/catalog/tracks`
+  - `GET /api/v1/catalog/tracks/{track_id}`
+  - `GET /api/v1/catalog/albums`
+  - `GET /api/v1/catalog/albums/{album_id}`
+
+Быстрый smoke-сценарий:
+
+1. `POST /api/v1/auth/signup`
+2. Назначь роль `composer` и обнови `PATCH /api/v1/profiles/me`
+3. Создай трек `POST /api/v1/catalog/tracks` и опубликуй `POST /publish`
+4. Создай альбом `POST /api/v1/catalog/albums`, добавь трек `PUT /tracks`, опубликуй `POST /publish`
+5. Проверь анонимное чтение через `GET /api/v1/catalog/tracks` и `GET /api/v1/catalog/albums`
+
 ## Полезные команды
 
 - `make ps` — список контейнеров проекта.

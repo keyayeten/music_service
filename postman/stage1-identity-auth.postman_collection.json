@@ -1,9 +1,9 @@
 {
   "info": {
     "_postman_id": "e2c24a77-0d18-45eb-a08c-bef336f95851",
-    "name": "music_service Stage 1-2 Identity/Auth+Profiles",
+    "name": "music_service Stage 1-3 Identity/Auth+Profiles+Catalog",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Stage 1-2 manual checks for signup/login/refresh/me and profile management."
+    "description": "Stage 1-3 manual checks for signup/login/refresh/me, profile management and catalog write/read endpoints."
   },
   "variable": [
     {
@@ -41,6 +41,38 @@
     {
       "key": "countryCode",
       "value": "UA"
+    },
+    {
+      "key": "trackTitle",
+      "value": "Stage3 Track From Postman"
+    },
+    {
+      "key": "trackDescription",
+      "value": "Track created in Postman for catalog tests."
+    },
+    {
+      "key": "trackDurationSeconds",
+      "value": "215"
+    },
+    {
+      "key": "trackId",
+      "value": ""
+    },
+    {
+      "key": "albumTitle",
+      "value": "Stage3 Album From Postman"
+    },
+    {
+      "key": "albumDescription",
+      "value": "Album created in Postman for catalog tests."
+    },
+    {
+      "key": "albumId",
+      "value": ""
+    },
+    {
+      "key": "catalogStatusFilter",
+      "value": "published"
     }
   ],
   "item": [
@@ -303,6 +335,363 @@
               "} else {",
               "  pm.expect(body.detail.code).to.eql('authorization_error');",
               "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Track",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/tracks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "tracks"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{trackTitle}}\",\n  \"description\": \"{{trackDescription}}\",\n  \"duration_seconds\": {{trackDurationSeconds}}\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.collectionVariables.set('trackId', body.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Publish Track",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/tracks/{{trackId}}/publish",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "tracks",
+            "{{trackId}}",
+            "publish"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.expect(body.status).to.eql('published');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Album",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/albums",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "albums"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{albumTitle}}\",\n  \"description\": \"{{albumDescription}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.collectionVariables.set('albumId', body.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Set Album Tracks",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/albums/{{albumId}}/tracks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "albums",
+            "{{albumId}}",
+            "tracks"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"track_ids\": [\n    \"{{trackId}}\"\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Publish Album",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/albums/{{albumId}}/publish",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "albums",
+            "{{albumId}}",
+            "publish"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.expect(body.status).to.eql('published');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Public Tracks",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/tracks?status={{catalogStatusFilter}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "tracks"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.expect(body).to.have.property('items');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Public Track",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/tracks/{{trackId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "tracks",
+            "{{trackId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Public Albums",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/albums?status={{catalogStatusFilter}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "albums"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.expect(body).to.have.property('items');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Public Album",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/albums/{{albumId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "albums",
+            "{{albumId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
             ],
             "type": "text/javascript"
           }
