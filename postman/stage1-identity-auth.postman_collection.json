@@ -1,9 +1,9 @@
 {
   "info": {
     "_postman_id": "e2c24a77-0d18-45eb-a08c-bef336f95851",
-    "name": "music_service Stage 1-3 Identity/Auth+Profiles+Catalog",
+    "name": "music_service Stage 1-4 Identity/Auth+Profiles+Catalog+Library",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Stage 1-3 manual checks for signup/login/refresh/me, profile management and catalog write/read endpoints."
+    "description": "Stage 1-4 manual checks for signup/login/refresh/me, profile management, catalog write/read and library endpoints."
   },
   "variable": [
     {
@@ -73,6 +73,26 @@
     {
       "key": "catalogStatusFilter",
       "value": "published"
+    },
+    {
+      "key": "playlistTitle",
+      "value": "Stage4 Playlist From Postman"
+    },
+    {
+      "key": "playlistDescription",
+      "value": "Playlist created in Postman for library tests."
+    },
+    {
+      "key": "playlistVisibility",
+      "value": "private"
+    },
+    {
+      "key": "playlistId",
+      "value": ""
+    },
+    {
+      "key": "librarySection",
+      "value": "favorites"
     }
   ],
   "item": [
@@ -691,6 +711,390 @@
             "exec": [
               "pm.test('status is 200', function () {",
               "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Playlist",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/playlists",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "playlists"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{playlistTitle}}\",\n  \"description\": \"{{playlistDescription}}\",\n  \"visibility\": \"{{playlistVisibility}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.collectionVariables.set('playlistId', body.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Add Playlist Track",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/playlists/{{playlistId}}/tracks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "playlists",
+            "{{playlistId}}",
+            "tracks"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"track_id\": \"{{trackId}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.expect(body.track_items.length).to.be.greaterThan(0);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reorder Playlist Tracks",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/playlists/{{playlistId}}/tracks/reorder",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "playlists",
+            "{{playlistId}}",
+            "tracks",
+            "reorder"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"track_ids\": [\n    \"{{trackId}}\"\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Publish Playlist Visibility",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/playlists/{{playlistId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "playlists",
+            "{{playlistId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{playlistTitle}}\",\n  \"description\": \"{{playlistDescription}}\",\n  \"visibility\": \"public\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.expect(body.visibility).to.eql('public');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Public Playlists",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/playlists/public",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "playlists",
+            "public"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.expect(body).to.have.property('items');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Public Playlist",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/playlists/public/{{playlistId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "playlists",
+            "public",
+            "{{playlistId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Add Library Item",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/items",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "items"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_type\": \"track\",\n  \"item_id\": \"{{trackId}}\",\n  \"section\": \"{{librarySection}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "List My Library Items",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/items?section={{librarySection}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "items"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.expect(body).to.have.property('items');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete Library Item",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/items/track/{{trackId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "items",
+            "track",
+            "{{trackId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 204', function () {",
+              "  pm.response.to.have.status(204);",
               "});"
             ],
             "type": "text/javascript"

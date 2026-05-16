@@ -2,5 +2,6 @@
 
 from backend.infrastructure.persistence.repositories.catalog import SqlAlchemyCatalogRepository
 from backend.infrastructure.persistence.repositories.identity_auth import SqlAlchemyIdentityAuthRepository
+from backend.infrastructure.persistence.repositories.library import SqlAlchemyLibraryRepository
 
-__all__ = ["SqlAlchemyIdentityAuthRepository", "SqlAlchemyCatalogRepository"]
+__all__ = ["SqlAlchemyIdentityAuthRepository", "SqlAlchemyCatalogRepository", "SqlAlchemyLibraryRepository"]

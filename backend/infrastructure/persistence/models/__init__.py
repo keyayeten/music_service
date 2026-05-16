@@ -13,6 +13,7 @@ from backend.infrastructure.persistence.models.catalog import (
     TrackGenre,
 )
 from backend.infrastructure.persistence.models.identity import ComposerProfile, Role, User, UserRole, UserRoleProfile
+from backend.infrastructure.persistence.models.library import LibraryItem, Playlist, PlaylistTrack
 from backend.infrastructure.persistence.models.service_heartbeat import ServiceHeartbeat
 
 __all__ = [
@@ -32,4 +33,7 @@ __all__ = [
     "TrackGenre",
     "Tag",
     "EntityTag",
+    "Playlist",
+    "PlaylistTrack",
+    "LibraryItem",
 ]

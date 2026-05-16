@@ -21,6 +21,17 @@ from backend.api.v1.schemas.catalog import (
     UpdateTrackRequest,
 )
 from backend.api.v1.schemas.profiles import ComposerProfileResponse, MyProfileResponse, UpdateMyProfileRequest
+from backend.api.v1.schemas.library import (
+    AddLibraryItemRequest,
+    AddPlaylistTrackRequest,
+    CreatePlaylistRequest,
+    LibraryItemResponse,
+    ListLibraryItemsResponse,
+    ListPlaylistsResponse,
+    PlaylistResponse,
+    ReorderPlaylistTracksRequest,
+    UpdatePlaylistRequest,
+)
 
 __all__ = [
     "SignupRequest",
@@ -44,5 +55,14 @@ __all__ = [
     "UpdateAlbumRequest",
     "ReplaceAlbumTracksRequest",
     "ModerateAlbumRequest",
+    "PlaylistResponse",
+    "ListPlaylistsResponse",
+    "CreatePlaylistRequest",
+    "UpdatePlaylistRequest",
+    "AddPlaylistTrackRequest",
+    "ReorderPlaylistTracksRequest",
+    "LibraryItemResponse",
+    "ListLibraryItemsResponse",
+    "AddLibraryItemRequest",
 ]
 """Pydantic schemas for v1 HTTP contracts."""
