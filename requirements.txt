@@ -5,3 +5,6 @@ psycopg[binary]
 redis
 python-dotenv
 alembic
+pytest
+pytest-asyncio
+httpx

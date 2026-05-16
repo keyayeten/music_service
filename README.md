@@ -121,6 +121,11 @@ make infra-down
 - `make logs` — логи всех сервисов compose.
 - `make migrate` — применить миграции Alembic локально.
 - `make migrate-docker` — применить миграции Alembic внутри контейнера API.
+- `make test` — полный запуск тестов (`unit` + `integration` + `api`).
+- `make test-unit` — запустить только unit-тесты.
+- `make test-integration` — запустить только integration-тесты.
+- `make test-api` — запустить только api-тесты.
+- `make pre-merge` — локальный quality gate (чистая БД + миграции + тесты + smoke health-check).
 
 ## Troubleshooting
 
@@ -145,4 +150,4 @@ make infra-down
   - `backend/config/` — настройки.
 - `infra/docker/` — `Dockerfile` и `docker-compose.yml`.
 - `alembic/` и `alembic.ini` — миграции базы данных.
-- `docs/` — документация и диаграммы (включая `docs/backend-architecture.md`).
+- `docs/` — документация и диаграммы (включая `docs/backend-architecture.md`, `docs/testing-strategy.md`, `docs/implementation-plan.md`, `docs/implementation-issues-checklist.md`).
