@@ -51,6 +51,7 @@ def test_list_tracks_returns_only_published_for_public_filter(db_session) -> Non
     published_track_id = str(uuid4())
     draft_track_id = str(uuid4())
     genre_id = str(uuid4())
+    genre_code = f"rock_{uuid4().hex[:8]}"
     db_session.execute(
         text(
             """
@@ -58,7 +59,7 @@ def test_list_tracks_returns_only_published_for_public_filter(db_session) -> Non
             VALUES (:id, :code, :name)
             """
         ),
-        {"id": genre_id, "code": "rock", "name": "Rock"},
+        {"id": genre_id, "code": genre_code, "name": "Rock"},
     )
     for track_id, title, status_value in (
         (published_track_id, "Published Track", "published"),
@@ -97,7 +98,7 @@ def test_list_tracks_returns_only_published_for_public_filter(db_session) -> Non
     result = repository.list_tracks(
         TrackListFilter(
             status=None,
-            genre_code="rock",
+            genre_code=genre_code,
             author_id=None,
             include_unpublished=False,
         )

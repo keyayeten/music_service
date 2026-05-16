@@ -1,4 +1,5 @@
 from collections.abc import Generator
+import logging
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
@@ -8,13 +9,16 @@ from backend.config.settings import Settings, get_settings
 
 _engine: Engine | None = None
 _session_factory: sessionmaker[Session] | None = None
+logger = logging.getLogger("backend.database")
 
 
 def init_database(settings: Settings | None = None) -> None:
     global _engine, _session_factory
     config = settings or get_settings()
     if _engine is not None:
+        logger.debug("Database engine already initialized.")
         return
+    logger.info("Initializing database engine with pool_size=%s max_overflow=%s.", config.db_pool_size, config.db_max_overflow)
     _engine = create_engine(
         config.database_url,
         echo=config.db_echo,
@@ -29,6 +33,7 @@ def init_database(settings: Settings | None = None) -> None:
 def close_database() -> None:
     global _engine, _session_factory
     if _engine is not None:
+        logger.info("Disposing database engine.")
         _engine.dispose()
     _engine = None
     _session_factory = None
@@ -50,7 +55,9 @@ def check_database_connection() -> bool:
     if _engine is None:
         init_database()
     if _engine is None:
+        logger.error("Database engine is not initialized.")
         return False
     with _engine.connect() as connection:
         connection.execute(text("SELECT 1"))
+    logger.debug("Database connection check succeeded.")
     return True

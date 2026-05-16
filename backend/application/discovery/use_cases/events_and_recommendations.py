@@ -36,6 +36,8 @@ class DiscoveryUseCases:
             target_type=_normalize_target_type(target_type),
             target_id=target_id,
         )
+        if not track_ids:
+            return
         self._record_event_for_tracks(actor_user_id, "comment", track_ids)
 
     def record_playlist_add_event(self, actor_user_id: UUID, *, track_id: UUID) -> None:

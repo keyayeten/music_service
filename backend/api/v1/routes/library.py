@@ -42,6 +42,7 @@ def create_playlist(
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
     db_session: Session = Depends(get_db_session),
+    response_cache: ApiResponseCache = Depends(get_api_response_cache),
 ) -> PlaylistResponse:
     try:
         result = use_cases.create_playlist(
@@ -51,6 +52,8 @@ def create_playlist(
             visibility=payload.visibility,
         )
         db_session.commit()
+        if result.visibility == "public":
+            _invalidate_public_playlist_cache(response_cache, playlist_id=result.id)
     except ValidationError as exc:
         db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
@@ -64,8 +67,10 @@ def update_playlist(
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
     db_session: Session = Depends(get_db_session),
+    response_cache: ApiResponseCache = Depends(get_api_response_cache),
 ) -> PlaylistResponse:
     try:
+        existing_playlist = use_cases.get_my_playlist(user.id, playlist_id=playlist_id)
         result = use_cases.update_playlist(
             user.id,
             playlist_id=playlist_id,
@@ -74,6 +79,8 @@ def update_playlist(
             visibility=payload.visibility,
         )
         db_session.commit()
+        if existing_playlist.visibility != result.visibility:
+            _invalidate_public_playlist_cache(response_cache, playlist_id=result.id)
     except ValidationError as exc:
         db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
@@ -89,10 +96,12 @@ def delete_playlist(
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
     db_session: Session = Depends(get_db_session),
+    response_cache: ApiResponseCache = Depends(get_api_response_cache),
 ) -> Response:
     try:
         use_cases.delete_playlist(user.id, playlist_id=playlist_id)
         db_session.commit()
+        _invalidate_public_playlist_cache(response_cache, playlist_id=playlist_id)
     except ValidationError as exc:
         db_session.rollback()
         raise _http_error(status.HTTP_404_NOT_FOUND, "not_found", exc.message) from exc
@@ -371,3 +380,9 @@ def _to_library_item_response(item: LibraryItemReadModel) -> LibraryItemResponse
 
 def _http_error(status_code: int, code: str, message: str) -> HTTPException:
     return HTTPException(status_code=status_code, detail={"code": code, "message": message})
+
+
+def _invalidate_public_playlist_cache(response_cache: ApiResponseCache, *, playlist_id: UUID) -> None:
+    response_cache.delete_namespace("library:playlists:public:list")
+    detail_key = response_cache.build_key("library:playlists:public:get", playlist_id=playlist_id)
+    response_cache.delete_key(detail_key)

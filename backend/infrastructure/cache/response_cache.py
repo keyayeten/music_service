@@ -33,6 +33,16 @@ class ApiResponseCache:
     def set_json(self, key: str, payload: dict, ttl_seconds: int) -> None:
         self.redis_client.setex(key, ttl_seconds, json.dumps(payload, separators=(",", ":"), ensure_ascii=True))
 
+    def delete_key(self, key: str) -> None:
+        self.redis_client.delete(key)
+
+    def delete_namespace(self, namespace: str) -> int:
+        pattern = f"{self.settings.redis_key_prefix}:http:{namespace}:*"
+        deleted = 0
+        for key in self.redis_client.scan_iter(match=pattern):
+            deleted += int(self.redis_client.delete(key))
+        return deleted
+
     def ttl_for_catalog_reads(self) -> int:
         return self.settings.redis_ttl_catalog_reads_seconds
 

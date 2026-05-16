@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from uuid import UUID
 
 from backend.application.identity.security import decode_jwt, hash_password, issue_token_pair, verify_password
 from backend.domain.common.exceptions import AuthenticationError, ConflictError, ValidationError
 from backend.domain.identity.repositories import IdentityAuthRepository, IdentityUserReadModel
+
+logger = logging.getLogger("backend.auth")
 
 
 @dataclass(frozen=True)
@@ -34,11 +37,14 @@ class IdentityAuthUseCases:
     def signup(self, email: str, username: str, password: str) -> AuthResult:
         normalized_email = email.strip().lower()
         normalized_username = username.strip()
+        logger.info("Signup attempt username=%s email=%s", normalized_username, _mask_email(normalized_email))
         self._validate_signup_fields(normalized_email, normalized_username, password)
 
         if self._repository.get_user_by_email(normalized_email):
+            logger.info("Signup rejected: email already registered email=%s", _mask_email(normalized_email))
             raise ConflictError("Email is already registered.")
         if self._repository.get_user_by_username(normalized_username):
+            logger.info("Signup rejected: username already registered username=%s", normalized_username)
             raise ConflictError("Username is already registered.")
 
         password_hash = hash_password(password)
@@ -59,16 +65,21 @@ class IdentityAuthUseCases:
             self._jwt_access_ttl_minutes,
             self._jwt_refresh_ttl_minutes,
         )
+        logger.info("Signup succeeded user_id=%s username=%s", user.id, user.username)
         return AuthResult(user=user, **tokens)
 
     def login(self, login: str, password: str) -> AuthResult:
         if not login.strip() or not password:
             raise ValidationError("Login and password are required.")
 
-        user_auth = self._repository.get_user_auth_by_login(login.strip())
+        login_value = login.strip()
+        logger.info("Login attempt login=%s", _mask_login(login_value))
+        user_auth = self._repository.get_user_auth_by_login(login_value)
         if user_auth is None or not verify_password(password, user_auth.password_hash):
+            logger.info("Login failed: invalid credentials login=%s", _mask_login(login_value))
             raise AuthenticationError("Invalid username/email or password.")
         if user_auth.status != "active":
+            logger.info("Login failed: inactive user user_id=%s", user_auth.id)
             raise AuthenticationError("User is not active.")
 
         user = self._repository.get_user_by_id(user_auth.id)
@@ -81,9 +92,11 @@ class IdentityAuthUseCases:
             self._jwt_access_ttl_minutes,
             self._jwt_refresh_ttl_minutes,
         )
+        logger.info("Login succeeded user_id=%s", user.id)
         return AuthResult(user=user, **tokens)
 
     def refresh(self, refresh_token: str) -> AuthResult:
+        logger.info("Refresh token attempt.")
         payload = decode_jwt(refresh_token, self._jwt_secret)
         token_type = payload.get("type")
         if token_type != "refresh":
@@ -109,6 +122,7 @@ class IdentityAuthUseCases:
             self._jwt_access_ttl_minutes,
             self._jwt_refresh_ttl_minutes,
         )
+        logger.info("Refresh token succeeded user_id=%s", user.id)
         return AuthResult(user=user, **tokens)
 
     def get_current_user(self, access_token: str) -> IdentityUserReadModel:
@@ -140,3 +154,20 @@ class IdentityAuthUseCases:
             raise ValidationError("Username length should be between 3 and 64 characters.")
         if len(password) < 8:
             raise ValidationError("Password must contain at least 8 characters.")
+
+
+def _mask_email(email: str) -> str:
+    local_part, _, domain = email.partition("@")
+    if not domain:
+        return "***"
+    if len(local_part) <= 2:
+        return f"{local_part[0:1]}***@{domain}" if local_part else f"***@{domain}"
+    return f"{local_part[:2]}***@{domain}"
+
+
+def _mask_login(login: str) -> str:
+    if "@" in login:
+        return _mask_email(login)
+    if len(login) <= 2:
+        return f"{login[0:1]}***" if login else "***"
+    return f"{login[:2]}***"

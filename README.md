@@ -101,6 +101,21 @@ curl -X POST http://127.0.0.1:8000/api/v1/cache/ping
 make infra-down
 ```
 
+## API документация (Swagger и ReDoc)
+
+При запущенном API документация доступна по URL:
+
+- Swagger UI (интерактивная): `http://127.0.0.1:8000/docs`
+- ReDoc (удобный read-only обзор): `http://127.0.0.1:8000/redoc`
+- OpenAPI JSON (машиночитаемая схема): `http://127.0.0.1:8000/openapi.json`
+
+Поведение настраивается через `.env`:
+
+- `DOCS_ENABLED=true|false` — глобально включает/выключает `/docs`, `/redoc`, `/openapi.json`.
+- `SWAGGER_DOCS_URL` — путь Swagger UI (по умолчанию `/docs`).
+- `REDOC_URL` — путь ReDoc (по умолчанию `/redoc`).
+- `OPENAPI_URL` — путь OpenAPI schema (по умолчанию `/openapi.json`).
+
 ## Конфиг окружения
 
 - В `.env.example` есть два ключевых URL:
@@ -113,7 +128,8 @@ make infra-down
 - Дополнительные настройки:
   - `DB_ECHO`, `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT`;
   - `REDIS_KEY_PREFIX`, `REDIS_TTL_SECONDS`, `REDIS_TTL_CATALOG_READS_SECONDS`, `REDIS_TTL_PUBLIC_PLAYLIST_READS_SECONDS`;
-  - `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_ACCESS_TTL_MINUTES`, `JWT_REFRESH_TTL_MINUTES`.
+  - `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_ACCESS_TTL_MINUTES`, `JWT_REFRESH_TTL_MINUTES`;
+  - `LOG_LEVEL` (`DEBUG|INFO|WARNING|ERROR|CRITICAL`).
 
 ## Identity/Auth API (Stage 1)
 
