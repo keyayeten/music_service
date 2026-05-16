@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Protocol
+from uuid import UUID
+
+SOCIAL_TARGET_TYPES = {"track", "album", "playlist"}
+COMMENT_STATUSES = {"visible", "hidden", "deleted", "pending_review"}
+
+
+@dataclass(frozen=True)
+class SocialTargetReadModel:
+    target_type: str
+    target_id: UUID
+    likes_count: int
+    comments_count: int
+
+
+@dataclass(frozen=True)
+class CommentReadModel:
+    id: UUID
+    user_id: UUID
+    target_type: str
+    target_id: UUID
+    parent_comment_id: UUID | None
+    body: str
+    status: str
+    created_at: datetime
+
+
+class SocialRepository(Protocol):
+    def get_target(self, target_type: str, target_id: UUID) -> SocialTargetReadModel | None:
+        """Return interactable target projection."""
+
+    def add_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> bool:
+        """Create like record, returns True when inserted."""
+
+    def remove_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> bool:
+        """Delete like record, returns True when removed."""
+
+    def create_comment(
+        self,
+        *,
+        user_id: UUID,
+        target_type: str,
+        target_id: UUID,
+        parent_comment_id: UUID | None,
+        body: str,
+        status: str,
+    ) -> CommentReadModel:
+        """Create comment and return projection."""
+
+    def get_comment_by_id(self, comment_id: UUID) -> CommentReadModel | None:
+        """Return comment projection by id."""
+
+    def list_comments(
+        self,
+        *,
+        target_type: str,
+        target_id: UUID,
+        limit: int,
+        offset: int,
+    ) -> list[CommentReadModel]:
+        """List visible comments for target ordered by creation date."""
+
+    def update_target_counters(
+        self,
+        *,
+        target_type: str,
+        target_id: UUID,
+        likes_delta: int = 0,
+        comments_delta: int = 0,
+    ) -> SocialTargetReadModel | None:
+        """Apply denormalized counter updates with non-negative guard."""
+
+    def add_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
+        """Synchronize like into library sections idempotently."""
+
+    def remove_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
+        """Synchronize unlike removal from library sections idempotently."""

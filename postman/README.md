@@ -1,6 +1,6 @@
 # Postman collections
 
-`stage1-identity-auth.postman_collection.json` содержит ручной сценарий Stage 1 + Stage 2 + Stage 3 + Stage 4:
+`stage1-identity-auth.postman_collection.json` содержит ручной сценарий Stage 1 + Stage 2 + Stage 3 + Stage 4 + Stage 5:
 
 1. `Signup`
 2. `Login (username/email)`
@@ -26,6 +26,15 @@
 22. `Add Library Item`
 23. `List My Library Items`
 24. `Delete Library Item`
+25. `Like Track`
+26. `Like Track Again (Idempotent)`
+27. `Comment Track`
+28. `Reply To Comment`
+29. `List Track Comments`
+30. `Get Track Comment By Id`
+31. `List Library Favorites (After Like Sync)`
+32. `Unlike Track`
+33. `Get Public Track (Counters After Social)`
 
 Перед запуском:
 
@@ -37,3 +46,7 @@
 - публичные запросы Stage 3 (`List/Get Public ...`) можно запускать без `Authorization`.
 - перед сценариями Stage 4 проверь, что `trackId` заполнен (используется для добавления в плейлист и медиатеку);
 - `Create Playlist` стартует как `private`, после `Publish Playlist Visibility` плейлист виден в `List/Get Public Playlist`.
+- Stage 5 (`Like/Comment`) выполняется авторизованным пользователем и ожидает, что `trackId` указывает на уже опубликованный трек.
+- `Reply To Comment` использует `commentId`, который автоматически заполняется после запроса `Comment Track`.
+- Запросы чтения комментариев Stage 5 (`List Track Comments`, `Get Track Comment By Id`) требуют `Authorization`.
+- `List Library Favorites (After Like Sync)` позволяет проверить автосинхронизацию лайка в `library_items`.

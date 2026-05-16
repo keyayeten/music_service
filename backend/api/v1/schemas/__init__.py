@@ -32,6 +32,13 @@ from backend.api.v1.schemas.library import (
     ReorderPlaylistTracksRequest,
     UpdatePlaylistRequest,
 )
+from backend.api.v1.schemas.social import (
+    CommentResponse,
+    CommentWithCountersResponse,
+    CreateCommentRequest,
+    LikeResponse,
+    ListCommentsResponse,
+)
 
 __all__ = [
     "SignupRequest",
@@ -64,5 +71,10 @@ __all__ = [
     "LibraryItemResponse",
     "ListLibraryItemsResponse",
     "AddLibraryItemRequest",
+    "LikeResponse",
+    "CreateCommentRequest",
+    "CommentResponse",
+    "CommentWithCountersResponse",
+    "ListCommentsResponse",
 ]
 """Pydantic schemas for v1 HTTP contracts."""

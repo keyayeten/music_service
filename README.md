@@ -131,7 +131,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/auth/signup -H "Content-Type: applicat
 curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -d "{\"login\":\"user1\",\"password\":\"StrongPassword123!\"}"
 ```
 
-Для ручного тестирования добавлена Postman-коллекция: `postman/stage1-identity-auth.postman_collection.json`.
+Для ручного тестирования добавлена Postman-коллекция: `postman/stage1-identity-auth.postman_collection.json` (Stage 1-5).
 
 ## Catalog API (Stage 3)
 
@@ -164,6 +164,30 @@ curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: applicati
 3. Создай трек `POST /api/v1/catalog/tracks` и опубликуй `POST /publish`
 4. Создай альбом `POST /api/v1/catalog/albums`, добавь трек `PUT /tracks`, опубликуй `POST /publish`
 5. Проверь анонимное чтение через `GET /api/v1/catalog/tracks` и `GET /api/v1/catalog/albums`
+
+## Social API (Stage 5)
+
+Доступные endpoints:
+
+- `POST /api/v1/social/{target_type}/{target_id}/like` — поставить лайк на `track | album | playlist`.
+- `DELETE /api/v1/social/{target_type}/{target_id}/like` — снять лайк (идемпотентно).
+- `POST /api/v1/social/{target_type}/{target_id}/comments` — оставить комментарий или reply (`parent_comment_id`).
+- `GET /api/v1/social/{target_type}/{target_id}/comments` — получить список комментариев цели.
+- `GET /api/v1/social/{target_type}/{target_id}/comments/{comment_id}` — получить конкретный комментарий цели.
+
+Ключевые правила:
+
+- Взаимодействия доступны только для публично доступного контента:
+  - `track` и `album` должны быть в статусе `published`;
+  - `playlist` должна иметь `visibility` = `public` или `unlisted`.
+- `like` идемпотентен: повторная постановка не создает дубль и не увеличивает счетчик.
+- При `like/unlike` выполняется автоматическая синхронизация с `library_items`:
+  - `track` -> `section=favorites`;
+  - `album` -> `section=albums`;
+  - `playlist` -> `section=playlists`.
+- Счетчики `likes_count` и `comments_count` обновляются в той же транзакции и не уходят ниже нуля.
+- Для `unlisted` плейлистов комментарии/лайки доступны по прямому `target_id` (deep link), но не через публичный список.
+- Карточки контента Stage 3/4 (`GET /catalog/tracks/{id}`, `GET /catalog/albums/{id}`, `GET /library/playlists/public/{id}`) возвращают актуальные счетчики.
 
 ## Полезные команды
 
