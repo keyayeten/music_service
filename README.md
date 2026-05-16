@@ -87,6 +87,12 @@ make infra-down
 
 ## Структура проекта
 
-- `backend/` — FastAPI-приложение (`backend/main.py`).
+- `backend/` — FastAPI-приложение с DDD-структурой:
+  - `backend/main.py` — composition root;
+  - `backend/api/` — HTTP-роутеры (`system` и versioned `v1`);
+  - `backend/application/` — use-cases;
+  - `backend/domain/` — доменная модель и контракты;
+  - `backend/infrastructure/` — инфраструктурные адаптеры;
+  - `backend/config/` — настройки.
 - `infra/docker/` — `Dockerfile` и `docker-compose.yml`.
-- `docs/` — документация и диаграммы.
+- `docs/` — документация и диаграммы (включая `docs/backend-architecture.md`).
