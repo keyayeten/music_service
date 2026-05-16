@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
-from redis import Redis
+from redis.asyncio import Redis
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_app_settings, get_cache_client, get_db_session
 from backend.config.settings import Settings
@@ -15,21 +15,21 @@ def root() -> dict[str, str]:
 
 
 @router.get("/health")
-def health(
+async def health(
     settings: Settings = Depends(get_app_settings),
-    db_session: Session = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_db_session),
     redis_client: Redis = Depends(get_cache_client),
 ) -> dict[str, str]:
     db_status = "ok"
     redis_status = "ok"
 
     try:
-        db_session.execute(text("SELECT 1"))
+        await db_session.execute(text("SELECT 1"))
     except Exception:
         db_status = "error"
 
     try:
-        redis_client.ping()
+        await redis_client.ping()
     except Exception:
         redis_status = "error"
 

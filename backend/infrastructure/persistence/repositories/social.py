@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy import delete, func, literal, select, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.domain.social.repositories import CommentReadModel, SocialRepository, SocialTargetReadModel
 from backend.infrastructure.persistence.models.catalog import Album, Track
@@ -13,11 +13,11 @@ from backend.infrastructure.persistence.models.social import Comment, Like
 
 
 class SqlAlchemySocialRepository(SocialRepository):
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    def get_target(self, target_type: str, target_id: UUID) -> SocialTargetReadModel | None:
-        row = self._session.execute(_target_select_stmt(target_type, target_id)).one_or_none()
+    async def get_target(self, target_type: str, target_id: UUID) -> SocialTargetReadModel | None:
+        row = (await self._session.execute(_target_select_stmt(target_type, target_id))).one_or_none()
         if row is None:
             return None
         return SocialTargetReadModel(
@@ -27,29 +27,29 @@ class SqlAlchemySocialRepository(SocialRepository):
             comments_count=row.comments_count,
         )
 
-    def add_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> bool:
+    async def add_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> bool:
         statement = (
             insert(Like)
             .values(user_id=user_id, target_type=target_type, target_id=target_id)
             .on_conflict_do_nothing(index_elements=["user_id", "target_type", "target_id"])
             .returning(Like.id)
         )
-        result = self._session.execute(statement)
-        self._session.flush()
+        result = await self._session.execute(statement)
+        await self._session.flush()
         return result.scalar_one_or_none() is not None
 
-    def remove_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> bool:
-        result = self._session.execute(
+    async def remove_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> bool:
+        result = await self._session.execute(
             delete(Like).where(
                 Like.user_id == user_id,
                 Like.target_type == target_type,
                 Like.target_id == target_id,
             )
         )
-        self._session.flush()
+        await self._session.flush()
         return bool(result.rowcount)
 
-    def create_comment(
+    async def create_comment(
         self,
         *,
         user_id: UUID,
@@ -68,16 +68,16 @@ class SqlAlchemySocialRepository(SocialRepository):
             status=status,
         )
         self._session.add(entity)
-        self._session.flush()
+        await self._session.flush()
         return _to_comment_read_model(entity)
 
-    def get_comment_by_id(self, comment_id: UUID) -> CommentReadModel | None:
-        entity = self._session.get(Comment, comment_id)
+    async def get_comment_by_id(self, comment_id: UUID) -> CommentReadModel | None:
+        entity = await self._session.get(Comment, comment_id)
         if entity is None:
             return None
         return _to_comment_read_model(entity)
 
-    def list_comments(
+    async def list_comments(
         self,
         *,
         target_type: str,
@@ -85,7 +85,7 @@ class SqlAlchemySocialRepository(SocialRepository):
         limit: int,
         offset: int,
     ) -> list[CommentReadModel]:
-        rows = self._session.execute(
+        rows = (await self._session.execute(
             select(Comment)
             .where(
                 Comment.target_type == target_type,
@@ -95,10 +95,10 @@ class SqlAlchemySocialRepository(SocialRepository):
             .order_by(Comment.created_at.desc())
             .limit(limit)
             .offset(offset)
-        ).scalars()
+        )).scalars()
         return [_to_comment_read_model(item) for item in rows]
 
-    def update_target_counters(
+    async def update_target_counters(
         self,
         *,
         target_type: str,
@@ -107,20 +107,20 @@ class SqlAlchemySocialRepository(SocialRepository):
         comments_delta: int = 0,
     ) -> SocialTargetReadModel | None:
         if likes_delta == 0 and comments_delta == 0:
-            return self.get_target(target_type, target_id)
+            return await self.get_target(target_type, target_id)
         statement = _target_update_stmt(
             target_type=target_type,
             target_id=target_id,
             likes_delta=likes_delta,
             comments_delta=comments_delta,
         )
-        result = self._session.execute(statement)
-        self._session.flush()
+        result = await self._session.execute(statement)
+        await self._session.flush()
         if result.rowcount == 0:
             return None
-        return self.get_target(target_type, target_id)
+        return await self.get_target(target_type, target_id)
 
-    def add_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
+    async def add_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
         statement = (
             insert(LibraryItem)
             .values(
@@ -131,18 +131,18 @@ class SqlAlchemySocialRepository(SocialRepository):
             )
             .on_conflict_do_nothing(index_elements=["user_id", "item_type", "item_id"])
         )
-        self._session.execute(statement)
-        self._session.flush()
+        await self._session.execute(statement)
+        await self._session.flush()
 
-    def remove_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
-        self._session.execute(
+    async def remove_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
+        await self._session.execute(
             delete(LibraryItem).where(
                 LibraryItem.user_id == user_id,
                 LibraryItem.item_type == target_type,
                 LibraryItem.item_id == target_id,
             )
         )
-        self._session.flush()
+        await self._session.flush()
 
 
 def _target_select_stmt(target_type: str, target_id: UUID):

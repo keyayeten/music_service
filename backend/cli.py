@@ -1,8 +1,9 @@
-from contextlib import contextmanager
+import asyncio
+from contextlib import asynccontextmanager
 import json
 
 import typer
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config.settings import get_settings
 from backend.infrastructure.persistence.database import get_session, init_database
@@ -35,6 +36,34 @@ def fixtures_seed(
     batch_size: int = typer.Option(500, help="Bulk insert chunk size."),
 ) -> None:
     """Generate large append-only fixtures for all project stages."""
+    asyncio.run(
+        _fixtures_seed_async(
+            users=users,
+            tracks=tracks,
+            albums=albums,
+            playlists=playlists,
+            batch_size=batch_size,
+        )
+    )
+
+
+@fixtures_app.command("stats")
+def fixtures_stats() -> None:
+    """Print fixture-related aggregate statistics."""
+    asyncio.run(_fixtures_stats_async())
+
+
+@asynccontextmanager
+async def _session_scope():
+    session_gen = get_session()
+    session: AsyncSession = await anext(session_gen)
+    try:
+        yield session
+    finally:
+        await session_gen.aclose()
+
+
+async def _fixtures_seed_async(*, users: int, tracks: int, albums: int, playlists: int, batch_size: int) -> None:
     init_database()
     options = FixtureSeedOptions(
         users=users,
@@ -43,8 +72,8 @@ def fixtures_seed(
         playlists=playlists,
         batch_size=batch_size,
     )
-    with _session_scope() as session:
-        result = seed_fixtures(session, options)
+    async with _session_scope() as session:
+        result = await session.run_sync(lambda sync_session: seed_fixtures(sync_session, options))
         typer.echo(
             json.dumps(
                 {
@@ -64,23 +93,11 @@ def fixtures_seed(
         )
 
 
-@fixtures_app.command("stats")
-def fixtures_stats() -> None:
-    """Print fixture-related aggregate statistics."""
+async def _fixtures_stats_async() -> None:
     init_database()
-    with _session_scope() as session:
-        stats = collect_fixture_stats(session)
+    async with _session_scope() as session:
+        stats = await session.run_sync(collect_fixture_stats)
         typer.echo(json.dumps(stats, ensure_ascii=False, indent=2))
-
-
-@contextmanager
-def _session_scope():
-    session_gen = get_session()
-    session: Session = next(session_gen)
-    try:
-        yield session
-    finally:
-        session_gen.close()
 
 
 app.add_typer(fixtures_app, name="fixtures")

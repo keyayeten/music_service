@@ -30,16 +30,16 @@ class CommentReadModel:
 
 
 class SocialRepository(Protocol):
-    def get_target(self, target_type: str, target_id: UUID) -> SocialTargetReadModel | None:
+    async def get_target(self, target_type: str, target_id: UUID) -> SocialTargetReadModel | None:
         """Return interactable target projection."""
 
-    def add_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> bool:
+    async def add_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> bool:
         """Create like record, returns True when inserted."""
 
-    def remove_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> bool:
+    async def remove_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> bool:
         """Delete like record, returns True when removed."""
 
-    def create_comment(
+    async def create_comment(
         self,
         *,
         user_id: UUID,
@@ -51,10 +51,10 @@ class SocialRepository(Protocol):
     ) -> CommentReadModel:
         """Create comment and return projection."""
 
-    def get_comment_by_id(self, comment_id: UUID) -> CommentReadModel | None:
+    async def get_comment_by_id(self, comment_id: UUID) -> CommentReadModel | None:
         """Return comment projection by id."""
 
-    def list_comments(
+    async def list_comments(
         self,
         *,
         target_type: str,
@@ -64,7 +64,7 @@ class SocialRepository(Protocol):
     ) -> list[CommentReadModel]:
         """List visible comments for target ordered by creation date."""
 
-    def update_target_counters(
+    async def update_target_counters(
         self,
         *,
         target_type: str,
@@ -74,8 +74,8 @@ class SocialRepository(Protocol):
     ) -> SocialTargetReadModel | None:
         """Apply denormalized counter updates with non-negative guard."""
 
-    def add_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
+    async def add_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
         """Synchronize like into library sections idempotently."""
 
-    def remove_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
+    async def remove_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
         """Synchronize unlike removal from library sections idempotently."""

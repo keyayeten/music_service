@@ -17,7 +17,7 @@ class LibraryPlaylistUseCases:
     def __init__(self, repository: LibraryRepository) -> None:
         self._repository = repository
 
-    def create_playlist(
+    async def create_playlist(
         self,
         actor_user_id: UUID,
         *,
@@ -25,14 +25,14 @@ class LibraryPlaylistUseCases:
         description: str | None,
         visibility: str,
     ) -> PlaylistReadModel:
-        return self._repository.create_playlist(
+        return await self._repository.create_playlist(
             owner_user_id=actor_user_id,
             title=_normalize_title(title),
             description=_normalize_optional_text(description),
             visibility=_normalize_visibility(visibility),
         )
 
-    def update_playlist(
+    async def update_playlist(
         self,
         actor_user_id: UUID,
         *,
@@ -41,8 +41,8 @@ class LibraryPlaylistUseCases:
         description: str | None,
         visibility: str,
     ) -> PlaylistReadModel:
-        self._require_owned_playlist(actor_user_id, playlist_id)
-        updated = self._repository.update_playlist(
+        await self._require_owned_playlist(actor_user_id, playlist_id)
+        updated = await self._repository.update_playlist(
             playlist_id=playlist_id,
             title=_normalize_title(title),
             description=_normalize_optional_text(description),
@@ -52,17 +52,17 @@ class LibraryPlaylistUseCases:
             raise ValidationError("Playlist is not found.")
         return updated
 
-    def delete_playlist(self, actor_user_id: UUID, *, playlist_id: UUID) -> None:
-        self._require_owned_playlist(actor_user_id, playlist_id)
-        if not self._repository.delete_playlist(playlist_id):
+    async def delete_playlist(self, actor_user_id: UUID, *, playlist_id: UUID) -> None:
+        await self._require_owned_playlist(actor_user_id, playlist_id)
+        if not await self._repository.delete_playlist(playlist_id):
             raise ValidationError("Playlist is not found.")
 
-    def get_my_playlist(self, actor_user_id: UUID, *, playlist_id: UUID) -> PlaylistReadModel:
-        return self._require_owned_playlist(actor_user_id, playlist_id)
+    async def get_my_playlist(self, actor_user_id: UUID, *, playlist_id: UUID) -> PlaylistReadModel:
+        return await self._require_owned_playlist(actor_user_id, playlist_id)
 
-    def list_my_playlists(self, actor_user_id: UUID, *, limit: int, offset: int) -> list[PlaylistReadModel]:
+    async def list_my_playlists(self, actor_user_id: UUID, *, limit: int, offset: int) -> list[PlaylistReadModel]:
         paging_limit, paging_offset = _normalize_paging(limit, offset)
-        return self._repository.list_playlists(
+        return await self._repository.list_playlists(
             PlaylistListFilter(
                 owner_user_id=actor_user_id,
                 limit=paging_limit,
@@ -70,9 +70,9 @@ class LibraryPlaylistUseCases:
             )
         )
 
-    def list_public_playlists(self, *, limit: int, offset: int) -> list[PlaylistReadModel]:
+    async def list_public_playlists(self, *, limit: int, offset: int) -> list[PlaylistReadModel]:
         paging_limit, paging_offset = _normalize_paging(limit, offset)
-        return self._repository.list_playlists(
+        return await self._repository.list_playlists(
             PlaylistListFilter(
                 visibility="public",
                 limit=paging_limit,
@@ -80,15 +80,15 @@ class LibraryPlaylistUseCases:
             )
         )
 
-    def get_public_playlist(self, playlist_id: UUID) -> PlaylistReadModel:
-        playlist = self._repository.get_playlist_by_id(playlist_id)
+    async def get_public_playlist(self, playlist_id: UUID) -> PlaylistReadModel:
+        playlist = await self._repository.get_playlist_by_id(playlist_id)
         if playlist is None:
             raise ValidationError("Playlist is not found.")
         if playlist.visibility == "private":
             raise ValidationError("Playlist is private.")
         return playlist
 
-    def add_track(
+    async def add_track(
         self,
         actor_user_id: UUID,
         *,
@@ -96,8 +96,8 @@ class LibraryPlaylistUseCases:
         track_id: UUID,
         position: int | None,
     ) -> PlaylistReadModel:
-        playlist = self._require_owned_playlist(actor_user_id, playlist_id)
-        if not self._repository.track_exists(track_id):
+        playlist = await self._require_owned_playlist(actor_user_id, playlist_id)
+        if not await self._repository.track_exists(track_id):
             raise ValidationError("Track is not found.")
         existing_ids = {item.track_id for item in playlist.track_items}
         if track_id in existing_ids:
@@ -114,25 +114,25 @@ class LibraryPlaylistUseCases:
             ),
         )
         normalized_tracks = _renumber_tracks(next_tracks)
-        self._repository.replace_playlist_tracks(playlist_id, normalized_tracks)
-        refreshed = self._repository.get_playlist_by_id(playlist_id)
+        await self._repository.replace_playlist_tracks(playlist_id, normalized_tracks)
+        refreshed = await self._repository.get_playlist_by_id(playlist_id)
         if refreshed is None:
             raise ValidationError("Playlist is not found.")
         return refreshed
 
-    def remove_track(self, actor_user_id: UUID, *, playlist_id: UUID, track_id: UUID) -> PlaylistReadModel:
-        playlist = self._require_owned_playlist(actor_user_id, playlist_id)
+    async def remove_track(self, actor_user_id: UUID, *, playlist_id: UUID, track_id: UUID) -> PlaylistReadModel:
+        playlist = await self._require_owned_playlist(actor_user_id, playlist_id)
         if track_id not in {item.track_id for item in playlist.track_items}:
             raise ValidationError("Track is not found in playlist.")
         remaining_tracks = [item for item in playlist.track_items if item.track_id != track_id]
-        self._repository.replace_playlist_tracks(playlist_id, _renumber_tracks(remaining_tracks))
-        refreshed = self._repository.get_playlist_by_id(playlist_id)
+        await self._repository.replace_playlist_tracks(playlist_id, _renumber_tracks(remaining_tracks))
+        refreshed = await self._repository.get_playlist_by_id(playlist_id)
         if refreshed is None:
             raise ValidationError("Playlist is not found.")
         return refreshed
 
-    def reorder_tracks(self, actor_user_id: UUID, *, playlist_id: UUID, track_ids: list[UUID]) -> PlaylistReadModel:
-        playlist = self._require_owned_playlist(actor_user_id, playlist_id)
+    async def reorder_tracks(self, actor_user_id: UUID, *, playlist_id: UUID, track_ids: list[UUID]) -> PlaylistReadModel:
+        playlist = await self._require_owned_playlist(actor_user_id, playlist_id)
         if not track_ids:
             raise ValidationError("Track order should not be empty.")
         unique_track_ids = list(dict.fromkeys(track_ids))
@@ -151,14 +151,14 @@ class LibraryPlaylistUseCases:
             )
             for index, track_id in enumerate(unique_track_ids)
         ]
-        self._repository.replace_playlist_tracks(playlist_id, reordered)
-        refreshed = self._repository.get_playlist_by_id(playlist_id)
+        await self._repository.replace_playlist_tracks(playlist_id, reordered)
+        refreshed = await self._repository.get_playlist_by_id(playlist_id)
         if refreshed is None:
             raise ValidationError("Playlist is not found.")
         return refreshed
 
-    def _require_owned_playlist(self, actor_user_id: UUID, playlist_id: UUID) -> PlaylistReadModel:
-        playlist = self._repository.get_playlist_by_id(playlist_id)
+    async def _require_owned_playlist(self, actor_user_id: UUID, playlist_id: UUID) -> PlaylistReadModel:
+        playlist = await self._repository.get_playlist_by_id(playlist_id)
         if playlist is None:
             raise ValidationError("Playlist is not found.")
         if playlist.owner_user_id != actor_user_id:

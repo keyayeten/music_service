@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import get_current_identity_user, get_db_session, get_identity_profiles_use_cases
 from backend.api.v1.schemas.profiles import MyProfileResponse, UpdateMyProfileRequest
@@ -14,40 +14,40 @@ router = APIRouter(prefix="/profiles", tags=["profiles"])
 
 
 @router.get("/me", response_model=MyProfileResponse)
-def get_my_profile(
+async def get_my_profile(
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: IdentityProfilesUseCases = Depends(get_identity_profiles_use_cases),
 ) -> MyProfileResponse:
     try:
-        profile = use_cases.get_my_profile(user.id)
+        profile = await use_cases.get_my_profile(user.id)
     except ValidationError as exc:
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     return _to_response(profile)
 
 
 @router.patch("/me", response_model=MyProfileResponse)
-def update_my_profile(
+async def update_my_profile(
     payload: UpdateMyProfileRequest,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: IdentityProfilesUseCases = Depends(get_identity_profiles_use_cases),
-    db_session: Session = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> MyProfileResponse:
     try:
-        profile = use_cases.update_my_profile(
+        profile = await use_cases.update_my_profile(
             user.id,
             display_name=payload.display_name,
             bio=payload.bio,
             country_code=payload.country_code,
         )
-        db_session.commit()
+        await db_session.commit()
     except ValidationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     except AuthorizationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     except IntegrityError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", "Profile constraints violated.") from exc
     return _to_response(profile)
 

@@ -36,7 +36,7 @@ class ReportListFilter:
 
 
 class ModerationRepository(Protocol):
-    def create_report(
+    async def create_report(
         self,
         *,
         reporter_user_id: UUID,
@@ -46,16 +46,16 @@ class ModerationRepository(Protocol):
     ) -> ReportReadModel:
         """Create a report in open status."""
 
-    def list_reports(self, filters: ReportListFilter) -> list[ReportReadModel]:
+    async def list_reports(self, filters: ReportListFilter) -> list[ReportReadModel]:
         """List reports with optional filters."""
 
-    def get_report_by_id(self, report_id: UUID) -> ReportReadModel | None:
+    async def get_report_by_id(self, report_id: UUID) -> ReportReadModel | None:
         """Fetch report by id."""
 
-    def set_report_status(self, report_id: UUID, status: str) -> ReportReadModel | None:
+    async def set_report_status(self, report_id: UUID, status: str) -> ReportReadModel | None:
         """Update report status."""
 
-    def create_moderation_action(
+    async def create_moderation_action(
         self,
         *,
         actor_user_id: UUID,
@@ -66,7 +66,7 @@ class ModerationRepository(Protocol):
     ) -> ModerationActionReadModel:
         """Persist moderation action audit record."""
 
-    def list_moderation_actions_by_target(
+    async def list_moderation_actions_by_target(
         self,
         *,
         target_type: str,
@@ -74,5 +74,5 @@ class ModerationRepository(Protocol):
     ) -> list[ModerationActionReadModel]:
         """List moderation audit records by target."""
 
-    def has_role(self, user_id: UUID, role_code: str) -> bool:
+    async def has_role(self, user_id: UUID, role_code: str) -> bool:
         """Check if user has role."""

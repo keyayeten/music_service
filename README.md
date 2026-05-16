@@ -5,6 +5,7 @@
 
 ## Quick Product Overview
 
+- **Latest updates:** backend переведен на full-async runtime (`FastAPI async handlers + AsyncSession + redis.asyncio`), обновлены тестовый контур и документация.
 - **Проблема:** музыкальный контент и обсуждения распределены по платформам, сложно собрать единую витрину и social-контекст.
 - **Решение:** единый backend-слой для каталога, пользовательских коллекций, взаимодействий и рекомендаций поверх внешних музыкальных ссылок.
 - **Для кого:** композиторы (публикация/модерация контента), слушатели (плейлисты/медиатека/social), staff (модерация и аудит).
@@ -45,10 +46,11 @@
 ## Технологический стек и архитектура
 
 - **Backend:** `FastAPI`, `Pydantic`, `Uvicorn`;
-- **Хранение:** `PostgreSQL` + `SQLAlchemy` + `Alembic`;
-- **Кэш:** `Redis`;
+- **Хранение:** `PostgreSQL` + `SQLAlchemy AsyncSession` (`asyncpg`) + `Alembic`;
+- **Кэш:** `Redis` (`redis.asyncio`);
 - **Тесты:** `pytest` (`unit` / `integration` / `api` / `e2e`);
 - **Архитектурный подход:** DDD-слои с правилами зависимостей `api -> application -> domain`, `infrastructure -> domain`.
+- **Execution model:** end-to-end async request path (`async def` handlers, async DI, async repositories, async cache I/O).
 
 Ключевая идея архитектуры: бизнес-инварианты и сценарии живут в domain/application, а HTTP и инфраструктура выступают адаптерами.
 
@@ -179,10 +181,12 @@ make infra-down
 - В `.env.example` есть два ключевых URL:
   - `DATABASE_URL`;
   - `REDIS_URL`.
+- `DATABASE_URL` должен использовать async driver формат `postgresql+asyncpg://...`.
 - Для **native режима** API использует значения из `.env` (обычно `localhost`).
 - Для **Docker режима** сервис `api` в compose переопределяет:
   - `DATABASE_URL` -> `...@postgres:5432/...`;
   - `REDIS_URL` -> `redis://redis:6379/0`.
+- Alembic миграции остаются синхронными: `alembic/env.py` автоматически подменяет `+asyncpg` на sync driver для выполнения миграций.
 - Дополнительные настройки:
   - `DB_ECHO`, `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT`;
   - `REDIS_KEY_PREFIX`, `REDIS_TTL_SECONDS`, `REDIS_TTL_CATALOG_READS_SECONDS`, `REDIS_TTL_PUBLIC_PLAYLIST_READS_SECONDS`;

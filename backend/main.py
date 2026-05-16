@@ -31,8 +31,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         logger.info("Shutting down application resources.")
-        close_redis_client()
-        close_database()
+        await close_redis_client()
+        await close_database()
         logger.info("Application shutdown complete.")
 
 

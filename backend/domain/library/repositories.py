@@ -60,7 +60,7 @@ class LibraryListFilter:
 
 
 class LibraryRepository(Protocol):
-    def create_playlist(
+    async def create_playlist(
         self,
         *,
         owner_user_id: UUID,
@@ -70,7 +70,7 @@ class LibraryRepository(Protocol):
     ) -> PlaylistReadModel:
         """Create a playlist."""
 
-    def update_playlist(
+    async def update_playlist(
         self,
         *,
         playlist_id: UUID,
@@ -80,16 +80,16 @@ class LibraryRepository(Protocol):
     ) -> PlaylistReadModel | None:
         """Update mutable playlist fields."""
 
-    def delete_playlist(self, playlist_id: UUID) -> bool:
+    async def delete_playlist(self, playlist_id: UUID) -> bool:
         """Delete playlist and associated tracks."""
 
-    def get_playlist_by_id(self, playlist_id: UUID) -> PlaylistReadModel | None:
+    async def get_playlist_by_id(self, playlist_id: UUID) -> PlaylistReadModel | None:
         """Return playlist projection with ordered tracks."""
 
-    def list_playlists(self, filters: PlaylistListFilter) -> list[PlaylistReadModel]:
+    async def list_playlists(self, filters: PlaylistListFilter) -> list[PlaylistReadModel]:
         """Return playlist projections by filters."""
 
-    def add_playlist_track(
+    async def add_playlist_track(
         self,
         *,
         playlist_id: UUID,
@@ -99,19 +99,19 @@ class LibraryRepository(Protocol):
     ) -> None:
         """Append track record at target position."""
 
-    def remove_playlist_track(self, *, playlist_id: UUID, track_id: UUID) -> bool:
+    async def remove_playlist_track(self, *, playlist_id: UUID, track_id: UUID) -> bool:
         """Remove track from playlist."""
 
-    def replace_playlist_tracks(self, playlist_id: UUID, tracks: list[PlaylistTrackItemReadModel]) -> None:
+    async def replace_playlist_tracks(self, playlist_id: UUID, tracks: list[PlaylistTrackItemReadModel]) -> None:
         """Replace all playlist tracks preserving order."""
 
-    def get_playlist_track_count(self, playlist_id: UUID) -> int:
+    async def get_playlist_track_count(self, playlist_id: UUID) -> int:
         """Count tracks in playlist."""
 
-    def track_exists(self, track_id: UUID) -> bool:
+    async def track_exists(self, track_id: UUID) -> bool:
         """Check whether catalog track exists."""
 
-    def add_library_item(
+    async def add_library_item(
         self,
         *,
         user_id: UUID,
@@ -121,11 +121,11 @@ class LibraryRepository(Protocol):
     ) -> LibraryItemReadModel:
         """Create library item."""
 
-    def remove_library_item(self, *, user_id: UUID, item_type: str, item_id: UUID) -> bool:
+    async def remove_library_item(self, *, user_id: UUID, item_type: str, item_id: UUID) -> bool:
         """Delete user library item."""
 
-    def list_library_items(self, filters: LibraryListFilter) -> list[LibraryItemReadModel]:
+    async def list_library_items(self, filters: LibraryListFilter) -> list[LibraryItemReadModel]:
         """List library items by filter."""
 
-    def item_exists(self, item_type: str, item_id: UUID) -> bool:
+    async def item_exists(self, item_type: str, item_id: UUID) -> bool:
         """Check whether referenced entity exists for polymorphic library item."""

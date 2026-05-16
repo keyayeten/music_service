@@ -7,6 +7,7 @@ from sqlalchemy import text
 
 from backend.application.moderation.use_cases.reports import ModerationReportUseCases
 from backend.infrastructure.persistence.repositories.moderation import SqlAlchemyModerationRepository
+from tests.async_tools import AsyncSessionAdapter, run_async
 
 
 def _ensure_role(db_session, code: str, name: str) -> int:
@@ -68,17 +69,19 @@ def test_report_full_lifecycle_creates_audit_records(db_session) -> None:
     _grant_role(db_session, reporter_id, user_role_id)
     _grant_role(db_session, moderator_id, moderator_role_id)
 
-    repository = SqlAlchemyModerationRepository(db_session)
+    repository = SqlAlchemyModerationRepository(AsyncSessionAdapter(db_session))
     use_cases = ModerationReportUseCases(repository=repository)
 
-    report = use_cases.create_report(
-        reporter_id,
-        target_type="track",
-        target_id=uuid4(),
-        reason="Inappropriate content in track description",
+    report = run_async(
+        use_cases.create_report(
+            reporter_id,
+            target_type="track",
+            target_id=uuid4(),
+            reason="Inappropriate content in track description",
+        )
     )
-    first_update = use_cases.set_report_status(moderator_id, report_id=report.id, target_status="in_review")
-    second_update = use_cases.set_report_status(moderator_id, report_id=report.id, target_status="resolved")
+    first_update = run_async(use_cases.set_report_status(moderator_id, report_id=report.id, target_status="in_review"))
+    second_update = run_async(use_cases.set_report_status(moderator_id, report_id=report.id, target_status="resolved"))
     db_session.commit()
 
     assert first_update.report.status == "in_review"

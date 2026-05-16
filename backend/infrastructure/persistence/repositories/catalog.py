@@ -5,7 +5,7 @@ from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy import delete, desc, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.domain.catalog.repositories import (
     AlbumListFilter,
@@ -21,24 +21,24 @@ from backend.infrastructure.persistence.models.identity import ComposerProfile, 
 
 
 class SqlAlchemyCatalogRepository(CatalogRepository):
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    def get_user_role_codes(self, user_id: UUID) -> list[str]:
+    async def get_user_role_codes(self, user_id: UUID) -> list[str]:
         query = (
             select(Role.code)
             .join(UserRole, UserRole.role_id == Role.id)
             .where(UserRole.user_id == user_id)
             .order_by(Role.code.asc())
         )
-        return list(self._session.execute(query).scalars())
+        return list((await self._session.execute(query)).scalars())
 
-    def get_composer_profile_id_by_user_id(self, user_id: UUID) -> UUID | None:
-        return self._session.execute(
+    async def get_composer_profile_id_by_user_id(self, user_id: UUID) -> UUID | None:
+        return (await self._session.execute(
             select(ComposerProfile.id).where(ComposerProfile.user_id == user_id)
-        ).scalar_one_or_none()
+        )).scalar_one_or_none()
 
-    def create_track(
+    async def create_track(
         self,
         *,
         title: str,
@@ -53,7 +53,7 @@ class SqlAlchemyCatalogRepository(CatalogRepository):
             status="draft",
         )
         self._session.add(track)
-        self._session.flush()
+        await self._session.flush()
         self._session.add(
             TrackAuthor(
                 track_id=track.id,
@@ -62,12 +62,12 @@ class SqlAlchemyCatalogRepository(CatalogRepository):
                 position=1,
             )
         )
-        self._session.flush()
-        created_track = self.get_track_by_id(track.id)
+        await self._session.flush()
+        created_track = await self.get_track_by_id(track.id)
         assert created_track is not None
         return created_track
 
-    def update_track(
+    async def update_track(
         self,
         *,
         track_id: UUID,
@@ -75,17 +75,17 @@ class SqlAlchemyCatalogRepository(CatalogRepository):
         description: str | None,
         duration_seconds: int,
     ) -> TrackReadModel | None:
-        track = self._session.get(Track, track_id)
+        track = await self._session.get(Track, track_id)
         if track is None:
             return None
         track.title = title
         track.description = description
         track.duration_seconds = duration_seconds
-        self._session.flush()
-        return self.get_track_by_id(track_id)
+        await self._session.flush()
+        return await self.get_track_by_id(track_id)
 
-    def replace_track_authors(self, track_id: UUID, authors: list[TrackAuthorReadModel]) -> None:
-        self._session.execute(delete(TrackAuthor).where(TrackAuthor.track_id == track_id))
+    async def replace_track_authors(self, track_id: UUID, authors: list[TrackAuthorReadModel]) -> None:
+        await self._session.execute(delete(TrackAuthor).where(TrackAuthor.track_id == track_id))
         for author in authors:
             self._session.add(
                 TrackAuthor(
@@ -95,26 +95,26 @@ class SqlAlchemyCatalogRepository(CatalogRepository):
                     position=author.position,
                 )
             )
-        self._session.flush()
+        await self._session.flush()
 
-    def set_track_status(self, track_id: UUID, status: str, published_at: datetime | None) -> TrackReadModel | None:
-        track = self._session.get(Track, track_id)
+    async def set_track_status(self, track_id: UUID, status: str, published_at: datetime | None) -> TrackReadModel | None:
+        track = await self._session.get(Track, track_id)
         if track is None:
             return None
         track.status = status
         track.published_at = published_at
-        self._session.flush()
-        return self.get_track_by_id(track_id)
+        await self._session.flush()
+        return await self.get_track_by_id(track_id)
 
-    def get_track_by_id(self, track_id: UUID) -> TrackReadModel | None:
-        track = self._session.get(Track, track_id)
+    async def get_track_by_id(self, track_id: UUID) -> TrackReadModel | None:
+        track = await self._session.get(Track, track_id)
         if track is None:
             return None
-        author_map = self._load_track_authors([track.id])
-        genre_map = self._load_track_genres([track.id])
+        author_map = await self._load_track_authors([track.id])
+        genre_map = await self._load_track_genres([track.id])
         return _to_track_read_model(track, author_map[track.id], genre_map[track.id])
 
-    def list_tracks(self, filters: TrackListFilter) -> list[TrackReadModel]:
+    async def list_tracks(self, filters: TrackListFilter) -> list[TrackReadModel]:
         query = select(Track).order_by(desc(Track.published_at), desc(Track.created_at))
         if filters.status is not None:
             query = query.where(Track.status == filters.status)
@@ -130,15 +130,15 @@ class SqlAlchemyCatalogRepository(CatalogRepository):
                 .join(Genre, Genre.id == TrackGenre.genre_id)
                 .where(Genre.code == filters.genre_code)
             )
-        tracks = list(self._session.execute(query.distinct()).scalars())
+        tracks = list((await self._session.execute(query.distinct())).scalars())
         if not tracks:
             return []
         track_ids = [item.id for item in tracks]
-        author_map = self._load_track_authors(track_ids)
-        genre_map = self._load_track_genres(track_ids)
+        author_map = await self._load_track_authors(track_ids)
+        genre_map = await self._load_track_genres(track_ids)
         return [_to_track_read_model(item, author_map[item.id], genre_map[item.id]) for item in tracks]
 
-    def create_album(
+    async def create_album(
         self,
         *,
         owner_composer_id: UUID,
@@ -154,12 +154,12 @@ class SqlAlchemyCatalogRepository(CatalogRepository):
             release_date=release_date,
         )
         self._session.add(album)
-        self._session.flush()
-        created_album = self.get_album_by_id(album.id)
+        await self._session.flush()
+        created_album = await self.get_album_by_id(album.id)
         assert created_album is not None
         return created_album
 
-    def update_album(
+    async def update_album(
         self,
         *,
         album_id: UUID,
@@ -167,17 +167,17 @@ class SqlAlchemyCatalogRepository(CatalogRepository):
         description: str | None,
         release_date: date | None,
     ) -> AlbumReadModel | None:
-        album = self._session.get(Album, album_id)
+        album = await self._session.get(Album, album_id)
         if album is None:
             return None
         album.title = title
         album.description = description
         album.release_date = release_date
-        self._session.flush()
-        return self.get_album_by_id(album_id)
+        await self._session.flush()
+        return await self.get_album_by_id(album_id)
 
-    def replace_album_tracks(self, album_id: UUID, track_ids: list[UUID]) -> None:
-        self._session.execute(delete(AlbumTrack).where(AlbumTrack.album_id == album_id))
+    async def replace_album_tracks(self, album_id: UUID, track_ids: list[UUID]) -> None:
+        await self._session.execute(delete(AlbumTrack).where(AlbumTrack.album_id == album_id))
         for index, track_id in enumerate(track_ids):
             self._session.add(
                 AlbumTrack(
@@ -186,24 +186,24 @@ class SqlAlchemyCatalogRepository(CatalogRepository):
                     position=index + 1,
                 )
             )
-        self._session.flush()
+        await self._session.flush()
 
-    def set_album_status(self, album_id: UUID, status: str) -> AlbumReadModel | None:
-        album = self._session.get(Album, album_id)
+    async def set_album_status(self, album_id: UUID, status: str) -> AlbumReadModel | None:
+        album = await self._session.get(Album, album_id)
         if album is None:
             return None
         album.status = status
-        self._session.flush()
-        return self.get_album_by_id(album_id)
+        await self._session.flush()
+        return await self.get_album_by_id(album_id)
 
-    def get_album_by_id(self, album_id: UUID) -> AlbumReadModel | None:
-        album = self._session.get(Album, album_id)
+    async def get_album_by_id(self, album_id: UUID) -> AlbumReadModel | None:
+        album = await self._session.get(Album, album_id)
         if album is None:
             return None
-        tracks_map = self._load_album_tracks([album.id])
+        tracks_map = await self._load_album_tracks([album.id])
         return _to_album_read_model(album, tracks_map[album.id])
 
-    def list_albums(self, filters: AlbumListFilter) -> list[AlbumReadModel]:
+    async def list_albums(self, filters: AlbumListFilter) -> list[AlbumReadModel]:
         query = select(Album).order_by(desc(Album.release_date), desc(Album.created_at))
         if filters.status is not None:
             query = query.where(Album.status == filters.status)
@@ -211,17 +211,17 @@ class SqlAlchemyCatalogRepository(CatalogRepository):
             query = query.where(Album.owner_composer_id == filters.owner_composer_id)
         if not filters.include_unpublished:
             query = query.where(Album.status == "published")
-        albums = list(self._session.execute(query).scalars())
+        albums = list((await self._session.execute(query)).scalars())
         if not albums:
             return []
         album_ids = [item.id for item in albums]
-        tracks_map = self._load_album_tracks(album_ids)
+        tracks_map = await self._load_album_tracks(album_ids)
         return [_to_album_read_model(item, tracks_map[item.id]) for item in albums]
 
-    def _load_track_authors(self, track_ids: list[UUID]) -> dict[UUID, list[TrackAuthorReadModel]]:
-        rows = self._session.execute(
+    async def _load_track_authors(self, track_ids: list[UUID]) -> dict[UUID, list[TrackAuthorReadModel]]:
+        rows = (await self._session.execute(
             select(TrackAuthor).where(TrackAuthor.track_id.in_(track_ids)).order_by(TrackAuthor.position.asc())
-        ).scalars()
+        )).scalars()
         author_map: dict[UUID, list[TrackAuthorReadModel]] = defaultdict(list)
         for row in rows:
             author_map[row.track_id].append(
@@ -233,24 +233,24 @@ class SqlAlchemyCatalogRepository(CatalogRepository):
             )
         return author_map
 
-    def _load_track_genres(self, track_ids: list[UUID]) -> dict[UUID, list[str]]:
-        rows = self._session.execute(
+    async def _load_track_genres(self, track_ids: list[UUID]) -> dict[UUID, list[str]]:
+        rows = (await self._session.execute(
             select(TrackGenre.track_id, Genre.code)
             .join(Genre, Genre.id == TrackGenre.genre_id)
             .where(TrackGenre.track_id.in_(track_ids))
             .order_by(Genre.code.asc())
-        ).all()
+        )).all()
         genre_map: dict[UUID, list[str]] = defaultdict(list)
         for track_id, genre_code in rows:
             genre_map[track_id].append(genre_code)
         return genre_map
 
-    def _load_album_tracks(self, album_ids: list[UUID]) -> dict[UUID, list[AlbumTrackReadModel]]:
-        rows = self._session.execute(
+    async def _load_album_tracks(self, album_ids: list[UUID]) -> dict[UUID, list[AlbumTrackReadModel]]:
+        rows = (await self._session.execute(
             select(AlbumTrack)
             .where(AlbumTrack.album_id.in_(album_ids))
             .order_by(AlbumTrack.album_id.asc(), AlbumTrack.position.asc())
-        ).scalars()
+        )).scalars()
         track_map: dict[UUID, list[AlbumTrackReadModel]] = defaultdict(list)
         for row in rows:
             track_map[row.album_id].append(

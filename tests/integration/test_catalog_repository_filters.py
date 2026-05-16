@@ -5,6 +5,7 @@ from sqlalchemy import text
 
 from backend.domain.catalog.repositories import AlbumListFilter, TrackListFilter
 from backend.infrastructure.persistence.repositories.catalog import SqlAlchemyCatalogRepository
+from tests.async_tools import AsyncSessionAdapter, run_async
 
 
 def _insert_user_and_composer(db_session) -> tuple[str, str]:
@@ -94,13 +95,15 @@ def test_list_tracks_returns_only_published_for_public_filter(db_session) -> Non
         )
     db_session.commit()
 
-    repository = SqlAlchemyCatalogRepository(db_session)
-    result = repository.list_tracks(
-        TrackListFilter(
-            status=None,
-            genre_code=genre_code,
-            author_id=None,
-            include_unpublished=False,
+    repository = SqlAlchemyCatalogRepository(AsyncSessionAdapter(db_session))
+    result = run_async(
+        repository.list_tracks(
+            TrackListFilter(
+                status=None,
+                genre_code=genre_code,
+                author_id=None,
+                include_unpublished=False,
+            )
         )
     )
 
@@ -144,12 +147,14 @@ def test_list_albums_by_owner_and_status(db_session) -> None:
     )
     db_session.commit()
 
-    repository = SqlAlchemyCatalogRepository(db_session)
-    result = repository.list_albums(
-        AlbumListFilter(
-            status="published",
-            owner_composer_id=UUID(composer_profile_id),
-            include_unpublished=True,
+    repository = SqlAlchemyCatalogRepository(AsyncSessionAdapter(db_session))
+    result = run_async(
+        repository.list_albums(
+            AlbumListFilter(
+                status="published",
+                owner_composer_id=UUID(composer_profile_id),
+                include_unpublished=True,
+            )
         )
     )
 

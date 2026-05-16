@@ -4,7 +4,7 @@ from collections import defaultdict
 from uuid import UUID
 
 from sqlalchemy import delete, desc, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.domain.library.repositories import (
     LibraryItemReadModel,
@@ -19,10 +19,10 @@ from backend.infrastructure.persistence.models.library import LibraryItem, Playl
 
 
 class SqlAlchemyLibraryRepository(LibraryRepository):
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    def create_playlist(
+    async def create_playlist(
         self,
         *,
         owner_user_id: UUID,
@@ -37,12 +37,12 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
             visibility=visibility,
         )
         self._session.add(playlist)
-        self._session.flush()
-        created = self.get_playlist_by_id(playlist.id)
+        await self._session.flush()
+        created = await self.get_playlist_by_id(playlist.id)
         assert created is not None
         return created
 
-    def update_playlist(
+    async def update_playlist(
         self,
         *,
         playlist_id: UUID,
@@ -50,31 +50,31 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
         description: str | None,
         visibility: str,
     ) -> PlaylistReadModel | None:
-        playlist = self._session.get(Playlist, playlist_id)
+        playlist = await self._session.get(Playlist, playlist_id)
         if playlist is None:
             return None
         playlist.title = title
         playlist.description = description
         playlist.visibility = visibility
-        self._session.flush()
-        return self.get_playlist_by_id(playlist_id)
+        await self._session.flush()
+        return await self.get_playlist_by_id(playlist_id)
 
-    def delete_playlist(self, playlist_id: UUID) -> bool:
-        playlist = self._session.get(Playlist, playlist_id)
+    async def delete_playlist(self, playlist_id: UUID) -> bool:
+        playlist = await self._session.get(Playlist, playlist_id)
         if playlist is None:
             return False
-        self._session.delete(playlist)
-        self._session.flush()
+        await self._session.delete(playlist)
+        await self._session.flush()
         return True
 
-    def get_playlist_by_id(self, playlist_id: UUID) -> PlaylistReadModel | None:
-        playlist = self._session.get(Playlist, playlist_id)
+    async def get_playlist_by_id(self, playlist_id: UUID) -> PlaylistReadModel | None:
+        playlist = await self._session.get(Playlist, playlist_id)
         if playlist is None:
             return None
-        tracks_map = self._load_playlist_tracks([playlist.id])
+        tracks_map = await self._load_playlist_tracks([playlist.id])
         return _to_playlist_read_model(playlist, tracks_map[playlist.id])
 
-    def list_playlists(self, filters: PlaylistListFilter) -> list[PlaylistReadModel]:
+    async def list_playlists(self, filters: PlaylistListFilter) -> list[PlaylistReadModel]:
         query = select(Playlist).order_by(desc(Playlist.created_at))
         if filters.owner_user_id is not None:
             query = query.where(Playlist.owner_user_id == filters.owner_user_id)
@@ -83,14 +83,14 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
         if filters.include_unlisted:
             query = query.where(Playlist.visibility.in_(("public", "unlisted")))
         query = query.limit(filters.limit).offset(filters.offset)
-        playlists = list(self._session.execute(query).scalars())
+        playlists = list((await self._session.execute(query)).scalars())
         if not playlists:
             return []
         playlist_ids = [item.id for item in playlists]
-        track_map = self._load_playlist_tracks(playlist_ids)
+        track_map = await self._load_playlist_tracks(playlist_ids)
         return [_to_playlist_read_model(item, track_map[item.id]) for item in playlists]
 
-    def add_playlist_track(
+    async def add_playlist_track(
         self,
         *,
         playlist_id: UUID,
@@ -106,20 +106,20 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
                 position=position,
             )
         )
-        self._session.flush()
+        await self._session.flush()
 
-    def remove_playlist_track(self, *, playlist_id: UUID, track_id: UUID) -> bool:
-        result = self._session.execute(
+    async def remove_playlist_track(self, *, playlist_id: UUID, track_id: UUID) -> bool:
+        result = await self._session.execute(
             delete(PlaylistTrack).where(
                 PlaylistTrack.playlist_id == playlist_id,
                 PlaylistTrack.track_id == track_id,
             )
         )
-        self._session.flush()
+        await self._session.flush()
         return bool(result.rowcount)
 
-    def replace_playlist_tracks(self, playlist_id: UUID, tracks: list[PlaylistTrackItemReadModel]) -> None:
-        self._session.execute(delete(PlaylistTrack).where(PlaylistTrack.playlist_id == playlist_id))
+    async def replace_playlist_tracks(self, playlist_id: UUID, tracks: list[PlaylistTrackItemReadModel]) -> None:
+        await self._session.execute(delete(PlaylistTrack).where(PlaylistTrack.playlist_id == playlist_id))
         for item in tracks:
             self._session.add(
                 PlaylistTrack(
@@ -130,20 +130,20 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
                     added_at=item.added_at,
                 )
             )
-        self._session.flush()
+        await self._session.flush()
 
-    def get_playlist_track_count(self, playlist_id: UUID) -> int:
+    async def get_playlist_track_count(self, playlist_id: UUID) -> int:
         return (
-            self._session.execute(
+            (await self._session.execute(
                 select(func.count()).select_from(PlaylistTrack).where(PlaylistTrack.playlist_id == playlist_id)
-            ).scalar_one()
+            )).scalar_one()
             or 0
         )
 
-    def track_exists(self, track_id: UUID) -> bool:
-        return self._session.get(Track, track_id) is not None
+    async def track_exists(self, track_id: UUID) -> bool:
+        return await self._session.get(Track, track_id) is not None
 
-    def add_library_item(
+    async def add_library_item(
         self,
         *,
         user_id: UUID,
@@ -158,21 +158,21 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
             section=section,
         )
         self._session.add(item)
-        self._session.flush()
+        await self._session.flush()
         return _to_library_item_read_model(item)
 
-    def remove_library_item(self, *, user_id: UUID, item_type: str, item_id: UUID) -> bool:
-        result = self._session.execute(
+    async def remove_library_item(self, *, user_id: UUID, item_type: str, item_id: UUID) -> bool:
+        result = await self._session.execute(
             delete(LibraryItem).where(
                 LibraryItem.user_id == user_id,
                 LibraryItem.item_type == item_type,
                 LibraryItem.item_id == item_id,
             )
         )
-        self._session.flush()
+        await self._session.flush()
         return bool(result.rowcount)
 
-    def list_library_items(self, filters: LibraryListFilter) -> list[LibraryItemReadModel]:
+    async def list_library_items(self, filters: LibraryListFilter) -> list[LibraryItemReadModel]:
         query = (
             select(LibraryItem)
             .where(LibraryItem.user_id == filters.user_id)
@@ -184,24 +184,24 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
             query = query.where(LibraryItem.section == filters.section)
         if filters.item_type is not None:
             query = query.where(LibraryItem.item_type == filters.item_type)
-        items = list(self._session.execute(query).scalars())
+        items = list((await self._session.execute(query)).scalars())
         return [_to_library_item_read_model(item) for item in items]
 
-    def item_exists(self, item_type: str, item_id: UUID) -> bool:
+    async def item_exists(self, item_type: str, item_id: UUID) -> bool:
         if item_type == "track":
-            return self._session.get(Track, item_id) is not None
+            return await self._session.get(Track, item_id) is not None
         if item_type == "album":
-            return self._session.get(Album, item_id) is not None
+            return await self._session.get(Album, item_id) is not None
         if item_type == "playlist":
-            return self._session.get(Playlist, item_id) is not None
+            return await self._session.get(Playlist, item_id) is not None
         return False
 
-    def _load_playlist_tracks(self, playlist_ids: list[UUID]) -> dict[UUID, list[PlaylistTrackItemReadModel]]:
-        rows = self._session.execute(
+    async def _load_playlist_tracks(self, playlist_ids: list[UUID]) -> dict[UUID, list[PlaylistTrackItemReadModel]]:
+        rows = (await self._session.execute(
             select(PlaylistTrack)
             .where(PlaylistTrack.playlist_id.in_(playlist_ids))
             .order_by(PlaylistTrack.playlist_id.asc(), PlaylistTrack.position.asc())
-        ).scalars()
+        )).scalars()
         track_map: dict[UUID, list[PlaylistTrackItemReadModel]] = defaultdict(list)
         for row in rows:
             track_map[row.playlist_id].append(

@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from sqlalchemy import or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.domain.identity.repositories import (
     ComposerProfileReadModel,
@@ -16,16 +16,16 @@ from backend.infrastructure.persistence.seeds.identity_roles import seed_identit
 
 
 class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    def get_user_by_id(self, user_id: UUID) -> IdentityUserReadModel | None:
-        user = self._session.get(User, user_id)
+    async def get_user_by_id(self, user_id: UUID) -> IdentityUserReadModel | None:
+        user = await self._session.get(User, user_id)
         return _to_read_model(user) if user else None
 
-    def get_user_auth_by_login(self, login: str) -> IdentityUserAuthModel | None:
+    async def get_user_auth_by_login(self, login: str) -> IdentityUserAuthModel | None:
         query = select(User).where(or_(User.username == login, User.email == login))
-        user = self._session.execute(query).scalar_one_or_none()
+        user = (await self._session.execute(query)).scalar_one_or_none()
         if user is None:
             return None
         return IdentityUserAuthModel(
@@ -36,47 +36,47 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
             status=user.status,
         )
 
-    def create_user(self, email: str, username: str, password_hash: str, status: str = "active") -> IdentityUserReadModel:
+    async def create_user(self, email: str, username: str, password_hash: str, status: str = "active") -> IdentityUserReadModel:
         user = User(email=email, username=username, password_hash=password_hash, status=status)
         self._session.add(user)
-        self._session.flush()
+        await self._session.flush()
         return _to_read_model(user)
 
-    def get_user_by_email(self, email: str) -> IdentityUserReadModel | None:
-        user = self._session.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    async def get_user_by_email(self, email: str) -> IdentityUserReadModel | None:
+        user = (await self._session.execute(select(User).where(User.email == email))).scalar_one_or_none()
         return _to_read_model(user) if user else None
 
-    def get_user_by_username(self, username: str) -> IdentityUserReadModel | None:
-        user = self._session.execute(select(User).where(User.username == username)).scalar_one_or_none()
+    async def get_user_by_username(self, username: str) -> IdentityUserReadModel | None:
+        user = (await self._session.execute(select(User).where(User.username == username))).scalar_one_or_none()
         return _to_read_model(user) if user else None
 
-    def ensure_roles_seeded(self) -> None:
-        seed_identity_roles(self._session)
-        self._session.flush()
+    async def ensure_roles_seeded(self) -> None:
+        await self._session.run_sync(seed_identity_roles)
+        await self._session.flush()
 
-    def get_role_id_by_code(self, code: str) -> int | None:
-        return self._session.execute(select(Role.id).where(Role.code == code)).scalar_one_or_none()
+    async def get_role_id_by_code(self, code: str) -> int | None:
+        return (await self._session.execute(select(Role.id).where(Role.code == code))).scalar_one_or_none()
 
-    def assign_role(self, user_id: UUID, role_id: int) -> None:
-        user_role = self._session.get(UserRole, {"user_id": user_id, "role_id": role_id})
+    async def assign_role(self, user_id: UUID, role_id: int) -> None:
+        user_role = await self._session.get(UserRole, {"user_id": user_id, "role_id": role_id})
         if user_role is None:
             self._session.add(UserRole(user_id=user_id, role_id=role_id))
-            self._session.flush()
+            await self._session.flush()
 
-    def get_user_role_codes(self, user_id: UUID) -> list[str]:
+    async def get_user_role_codes(self, user_id: UUID) -> list[str]:
         query = (
             select(Role.code)
             .join(UserRole, UserRole.role_id == Role.id)
             .where(UserRole.user_id == user_id)
             .order_by(Role.code.asc())
         )
-        return list(self._session.execute(query).scalars())
+        return list((await self._session.execute(query)).scalars())
 
-    def get_composer_profile_by_user_id(self, user_id: UUID) -> ComposerProfileReadModel | None:
-        profile = self._session.execute(select(ComposerProfile).where(ComposerProfile.user_id == user_id)).scalar_one_or_none()
+    async def get_composer_profile_by_user_id(self, user_id: UUID) -> ComposerProfileReadModel | None:
+        profile = (await self._session.execute(select(ComposerProfile).where(ComposerProfile.user_id == user_id))).scalar_one_or_none()
         return _to_composer_profile_read_model(profile) if profile else None
 
-    def upsert_composer_profile(
+    async def upsert_composer_profile(
         self,
         *,
         user_id: UUID,
@@ -84,7 +84,7 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
         bio: str | None,
         country_code: str | None,
     ) -> ComposerProfileReadModel:
-        profile = self._session.execute(select(ComposerProfile).where(ComposerProfile.user_id == user_id)).scalar_one_or_none()
+        profile = (await self._session.execute(select(ComposerProfile).where(ComposerProfile.user_id == user_id))).scalar_one_or_none()
         if profile is None:
             profile = ComposerProfile(
                 user_id=user_id,
@@ -94,16 +94,16 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
                 verified=False,
             )
             self._session.add(profile)
-            self._session.flush()
+            await self._session.flush()
             return _to_composer_profile_read_model(profile)
 
         profile.display_name = display_name
         profile.bio = bio
         profile.country_code = country_code
-        self._session.flush()
+        await self._session.flush()
         return _to_composer_profile_read_model(profile)
 
-    def upsert_user_role_profile(
+    async def upsert_user_role_profile(
         self,
         *,
         user_id: UUID,
@@ -111,13 +111,13 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
         profile_type: str,
         profile_id: UUID,
     ) -> None:
-        role_profile = self._session.execute(
+        role_profile = (await self._session.execute(
             select(UserRoleProfile).where(
                 UserRoleProfile.user_id == user_id,
                 UserRoleProfile.role_id == role_id,
                 UserRoleProfile.profile_type == profile_type,
             )
-        ).scalar_one_or_none()
+        )).scalar_one_or_none()
         if role_profile is None:
             self._session.add(
                 UserRoleProfile(
@@ -127,11 +127,11 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
                     profile_id=profile_id,
                 )
             )
-            self._session.flush()
+            await self._session.flush()
             return
 
         role_profile.profile_id = profile_id
-        self._session.flush()
+        await self._session.flush()
 
 
 def _to_read_model(user: User) -> IdentityUserReadModel:

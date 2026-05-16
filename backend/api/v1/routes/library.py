@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import (
     get_api_response_cache,
@@ -37,102 +37,102 @@ router = APIRouter(prefix="/library", tags=["library"])
 
 
 @router.post("/playlists", response_model=PlaylistResponse, status_code=status.HTTP_201_CREATED)
-def create_playlist(
+async def create_playlist(
     payload: CreatePlaylistRequest,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
-    db_session: Session = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_db_session),
     response_cache: ApiResponseCache = Depends(get_api_response_cache),
 ) -> PlaylistResponse:
     try:
-        result = use_cases.create_playlist(
+        result = await use_cases.create_playlist(
             user.id,
             title=payload.title,
             description=payload.description,
             visibility=payload.visibility,
         )
-        db_session.commit()
+        await db_session.commit()
         if result.visibility == "public":
-            _invalidate_public_playlist_cache(response_cache, playlist_id=result.id)
+            await _invalidate_public_playlist_cache(response_cache, playlist_id=result.id)
     except ValidationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     return _to_playlist_response(result)
 
 
 @router.patch("/playlists/{playlist_id}", response_model=PlaylistResponse)
-def update_playlist(
+async def update_playlist(
     playlist_id: UUID,
     payload: UpdatePlaylistRequest,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
-    db_session: Session = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_db_session),
     response_cache: ApiResponseCache = Depends(get_api_response_cache),
 ) -> PlaylistResponse:
     try:
-        existing_playlist = use_cases.get_my_playlist(user.id, playlist_id=playlist_id)
-        result = use_cases.update_playlist(
+        existing_playlist = await use_cases.get_my_playlist(user.id, playlist_id=playlist_id)
+        result = await use_cases.update_playlist(
             user.id,
             playlist_id=playlist_id,
             title=payload.title,
             description=payload.description,
             visibility=payload.visibility,
         )
-        db_session.commit()
+        await db_session.commit()
         if existing_playlist.visibility != result.visibility:
-            _invalidate_public_playlist_cache(response_cache, playlist_id=result.id)
+            await _invalidate_public_playlist_cache(response_cache, playlist_id=result.id)
     except ValidationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     except AuthorizationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     return _to_playlist_response(result)
 
 
 @router.delete("/playlists/{playlist_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_playlist(
+async def delete_playlist(
     playlist_id: UUID,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
-    db_session: Session = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_db_session),
     response_cache: ApiResponseCache = Depends(get_api_response_cache),
 ) -> Response:
     try:
-        use_cases.delete_playlist(user.id, playlist_id=playlist_id)
-        db_session.commit()
-        _invalidate_public_playlist_cache(response_cache, playlist_id=playlist_id)
+        await use_cases.delete_playlist(user.id, playlist_id=playlist_id)
+        await db_session.commit()
+        await _invalidate_public_playlist_cache(response_cache, playlist_id=playlist_id)
     except ValidationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_404_NOT_FOUND, "not_found", exc.message) from exc
     except AuthorizationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/playlists/me", response_model=ListPlaylistsResponse)
-def list_my_playlists(
+async def list_my_playlists(
     limit: int = Query(default=20),
     offset: int = Query(default=0),
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
 ) -> ListPlaylistsResponse:
     try:
-        items = use_cases.list_my_playlists(user.id, limit=limit, offset=offset)
+        items = await use_cases.list_my_playlists(user.id, limit=limit, offset=offset)
     except ValidationError as exc:
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     return ListPlaylistsResponse(items=[_to_playlist_response(item) for item in items])
 
 
 @router.get("/playlists/me/{playlist_id}", response_model=PlaylistResponse)
-def get_my_playlist(
+async def get_my_playlist(
     playlist_id: UUID,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
 ) -> PlaylistResponse:
     try:
-        item = use_cases.get_my_playlist(user.id, playlist_id=playlist_id)
+        item = await use_cases.get_my_playlist(user.id, playlist_id=playlist_id)
     except ValidationError as exc:
         raise _http_error(status.HTTP_404_NOT_FOUND, "not_found", exc.message) from exc
     except AuthorizationError as exc:
@@ -141,88 +141,88 @@ def get_my_playlist(
 
 
 @router.post("/playlists/{playlist_id}/tracks", response_model=PlaylistResponse)
-def add_playlist_track(
+async def add_playlist_track(
     playlist_id: UUID,
     payload: AddPlaylistTrackRequest,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
     discovery_use_cases: DiscoveryUseCases = Depends(get_discovery_use_cases),
-    db_session: Session = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> PlaylistResponse:
     try:
         track_id = UUID(payload.track_id)
-        result = use_cases.add_track(
+        result = await use_cases.add_track(
             user.id,
             playlist_id=playlist_id,
             track_id=track_id,
             position=payload.position,
         )
-        discovery_use_cases.record_playlist_add_event(user.id, track_id=track_id)
-        db_session.commit()
+        await discovery_use_cases.record_playlist_add_event(user.id, track_id=track_id)
+        await db_session.commit()
     except ValueError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", "Track id should be a valid UUID value.") from exc
     except ValidationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     except AuthorizationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     except IntegrityError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", "Playlist track constraints violated.") from exc
     return _to_playlist_response(result)
 
 
 @router.delete("/playlists/{playlist_id}/tracks/{track_id}", response_model=PlaylistResponse)
-def remove_playlist_track(
+async def remove_playlist_track(
     playlist_id: UUID,
     track_id: UUID,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
-    db_session: Session = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> PlaylistResponse:
     try:
-        result = use_cases.remove_track(user.id, playlist_id=playlist_id, track_id=track_id)
-        db_session.commit()
+        result = await use_cases.remove_track(user.id, playlist_id=playlist_id, track_id=track_id)
+        await db_session.commit()
     except ValidationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     except AuthorizationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     return _to_playlist_response(result)
 
 
 @router.put("/playlists/{playlist_id}/tracks/reorder", response_model=PlaylistResponse)
-def reorder_playlist_tracks(
+async def reorder_playlist_tracks(
     playlist_id: UUID,
     payload: ReorderPlaylistTracksRequest,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
-    db_session: Session = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> PlaylistResponse:
     try:
-        result = use_cases.reorder_tracks(
+        result = await use_cases.reorder_tracks(
             user.id,
             playlist_id=playlist_id,
             track_ids=[UUID(item) for item in payload.track_ids],
         )
-        db_session.commit()
+        await db_session.commit()
     except ValueError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", "Track ids should be valid UUID values.") from exc
     except ValidationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     except AuthorizationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     return _to_playlist_response(result)
 
 
 @router.get("/playlists/public", response_model=ListPlaylistsResponse)
-def list_public_playlists(
+async def list_public_playlists(
     limit: int = Query(default=20),
     offset: int = Query(default=0),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
@@ -233,15 +233,15 @@ def list_public_playlists(
         limit=limit,
         offset=offset,
     )
-    cached_payload = response_cache.get_json(cache_key)
+    cached_payload = await response_cache.get_json(cache_key)
     if cached_payload is not None:
         return ListPlaylistsResponse.model_validate(cached_payload)
     try:
-        items = use_cases.list_public_playlists(limit=limit, offset=offset)
+        items = await use_cases.list_public_playlists(limit=limit, offset=offset)
     except ValidationError as exc:
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     response = ListPlaylistsResponse(items=[_to_playlist_response(item) for item in items])
-    response_cache.set_json(
+    await response_cache.set_json(
         key=cache_key,
         payload=response.model_dump(mode="json"),
         ttl_seconds=response_cache.ttl_for_public_playlist_reads(),
@@ -250,21 +250,21 @@ def list_public_playlists(
 
 
 @router.get("/playlists/public/{playlist_id}", response_model=PlaylistResponse)
-def get_public_playlist(
+async def get_public_playlist(
     playlist_id: UUID,
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
     response_cache: ApiResponseCache = Depends(get_api_response_cache),
 ) -> PlaylistResponse:
     cache_key = response_cache.build_key("library:playlists:public:get", playlist_id=playlist_id)
-    cached_payload = response_cache.get_json(cache_key)
+    cached_payload = await response_cache.get_json(cache_key)
     if cached_payload is not None:
         return PlaylistResponse.model_validate(cached_payload)
     try:
-        item = use_cases.get_public_playlist(playlist_id)
+        item = await use_cases.get_public_playlist(playlist_id)
     except ValidationError as exc:
         raise _http_error(status.HTTP_404_NOT_FOUND, "not_found", exc.message) from exc
     response = _to_playlist_response(item)
-    response_cache.set_json(
+    await response_cache.set_json(
         key=cache_key,
         payload=response.model_dump(mode="json"),
         ttl_seconds=response_cache.ttl_for_public_playlist_reads(),
@@ -273,58 +273,58 @@ def get_public_playlist(
 
 
 @router.post("/items", response_model=LibraryItemResponse, status_code=status.HTTP_201_CREATED)
-def add_library_item(
+async def add_library_item(
     payload: AddLibraryItemRequest,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryItemUseCases = Depends(get_library_item_use_cases),
     discovery_use_cases: DiscoveryUseCases = Depends(get_discovery_use_cases),
-    db_session: Session = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> LibraryItemResponse:
     try:
         item_id = UUID(payload.item_id)
-        result = use_cases.add_item(
+        result = await use_cases.add_item(
             user.id,
             item_type=payload.item_type,
             item_id=item_id,
             section=payload.section,
         )
-        discovery_use_cases.record_save_events(
+        await discovery_use_cases.record_save_events(
             user.id,
             item_type=payload.item_type,
             item_id=item_id,
         )
-        db_session.commit()
+        await db_session.commit()
     except ValueError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", "Item id should be a valid UUID value.") from exc
     except ValidationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     except IntegrityError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", "Library item constraints violated.") from exc
     return _to_library_item_response(result)
 
 
 @router.delete("/items/{item_type}/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def remove_library_item(
+async def remove_library_item(
     item_type: str,
     item_id: UUID,
     user: IdentityUserReadModel = Depends(get_current_identity_user),
     use_cases: LibraryItemUseCases = Depends(get_library_item_use_cases),
-    db_session: Session = Depends(get_db_session),
+    db_session: AsyncSession = Depends(get_db_session),
 ) -> Response:
     try:
-        use_cases.remove_item(user.id, item_type=item_type, item_id=item_id)
-        db_session.commit()
+        await use_cases.remove_item(user.id, item_type=item_type, item_id=item_id)
+        await db_session.commit()
     except ValidationError as exc:
-        db_session.rollback()
+        await db_session.rollback()
         raise _http_error(status.HTTP_404_NOT_FOUND, "not_found", exc.message) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/items", response_model=ListLibraryItemsResponse)
-def list_library_items(
+async def list_library_items(
     section: str | None = Query(default=None),
     item_type: str | None = Query(default=None),
     limit: int = Query(default=20),
@@ -333,7 +333,7 @@ def list_library_items(
     use_cases: LibraryItemUseCases = Depends(get_library_item_use_cases),
 ) -> ListLibraryItemsResponse:
     try:
-        items = use_cases.list_items(
+        items = await use_cases.list_items(
             user.id,
             section=section,
             item_type=item_type,
@@ -382,7 +382,7 @@ def _http_error(status_code: int, code: str, message: str) -> HTTPException:
     return HTTPException(status_code=status_code, detail={"code": code, "message": message})
 
 
-def _invalidate_public_playlist_cache(response_cache: ApiResponseCache, *, playlist_id: UUID) -> None:
-    response_cache.delete_namespace("library:playlists:public:list")
+async def _invalidate_public_playlist_cache(response_cache: ApiResponseCache, *, playlist_id: UUID) -> None:
+    await response_cache.delete_namespace("library:playlists:public:list")
     detail_key = response_cache.build_key("library:playlists:public:get", playlist_id=playlist_id)
-    response_cache.delete_key(detail_key)
+    await response_cache.delete_key(detail_key)

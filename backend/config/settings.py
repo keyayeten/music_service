@@ -71,7 +71,7 @@ def get_settings() -> Settings:
         redoc_url=_get_optional_str("REDOC_URL", "/redoc"),
         database_url=os.getenv(
             "DATABASE_URL",
-            "postgresql+psycopg://music_user:music_password@localhost:5432/music_service",
+            "postgresql+asyncpg://music_user:music_password@localhost:5432/music_service",
         ),
         redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         api_v1_prefix=os.getenv("API_V1_PREFIX", "/api/v1"),

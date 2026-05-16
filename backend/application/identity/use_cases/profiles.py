@@ -21,16 +21,16 @@ class IdentityProfilesUseCases:
     def __init__(self, repository: IdentityAuthRepository) -> None:
         self._repository = repository
 
-    def get_my_profile(self, user_id: UUID) -> IdentityProfileResult:
-        user = self._repository.get_user_by_id(user_id)
+    async def get_my_profile(self, user_id: UUID) -> IdentityProfileResult:
+        user = await self._repository.get_user_by_id(user_id)
         if user is None:
             raise ValidationError("User is not found.")
 
-        roles = self._repository.get_user_role_codes(user_id)
-        composer_profile = self._repository.get_composer_profile_by_user_id(user_id)
+        roles = await self._repository.get_user_role_codes(user_id)
+        composer_profile = await self._repository.get_composer_profile_by_user_id(user_id)
         return IdentityProfileResult(user=user, roles=roles, composer_profile=composer_profile)
 
-    def update_my_profile(
+    async def update_my_profile(
         self,
         user_id: UUID,
         *,
@@ -44,27 +44,27 @@ class IdentityProfilesUseCases:
 
         self._validate_update_payload(normalized_display_name, normalized_bio, normalized_country_code)
 
-        role_codes = self._repository.get_user_role_codes(user_id)
+        role_codes = await self._repository.get_user_role_codes(user_id)
         if COMPOSER_ROLE_CODE not in role_codes:
             raise AuthorizationError("Composer role is required to manage composer profile.")
 
-        role_id = self._repository.get_role_id_by_code(COMPOSER_ROLE_CODE)
+        role_id = await self._repository.get_role_id_by_code(COMPOSER_ROLE_CODE)
         if role_id is None:
             raise ValidationError("Composer role is not configured.")
 
-        composer_profile = self._repository.upsert_composer_profile(
+        composer_profile = await self._repository.upsert_composer_profile(
             user_id=user_id,
             display_name=normalized_display_name,
             bio=normalized_bio,
             country_code=normalized_country_code,
         )
-        self._repository.upsert_user_role_profile(
+        await self._repository.upsert_user_role_profile(
             user_id=user_id,
             role_id=role_id,
             profile_type=COMPOSER_PROFILE_TYPE,
             profile_id=composer_profile.id,
         )
-        user = self._repository.get_user_by_id(user_id)
+        user = await self._repository.get_user_by_id(user_id)
         if user is None:
             raise ValidationError("User is not found.")
 

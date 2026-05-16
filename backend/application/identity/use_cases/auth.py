@@ -34,30 +34,30 @@ class IdentityAuthUseCases:
         self._jwt_access_ttl_minutes = jwt_access_ttl_minutes
         self._jwt_refresh_ttl_minutes = jwt_refresh_ttl_minutes
 
-    def signup(self, email: str, username: str, password: str) -> AuthResult:
+    async def signup(self, email: str, username: str, password: str) -> AuthResult:
         normalized_email = email.strip().lower()
         normalized_username = username.strip()
         logger.info("Signup attempt username=%s email=%s", normalized_username, _mask_email(normalized_email))
         self._validate_signup_fields(normalized_email, normalized_username, password)
 
-        if self._repository.get_user_by_email(normalized_email):
+        if await self._repository.get_user_by_email(normalized_email):
             logger.info("Signup rejected: email already registered email=%s", _mask_email(normalized_email))
             raise ConflictError("Email is already registered.")
-        if self._repository.get_user_by_username(normalized_username):
+        if await self._repository.get_user_by_username(normalized_username):
             logger.info("Signup rejected: username already registered username=%s", normalized_username)
             raise ConflictError("Username is already registered.")
 
         password_hash = hash_password(password)
-        self._repository.ensure_roles_seeded()
-        user = self._repository.create_user(
+        await self._repository.ensure_roles_seeded()
+        user = await self._repository.create_user(
             email=normalized_email,
             username=normalized_username,
             password_hash=password_hash,
         )
-        role_id = self._repository.get_role_id_by_code("user")
+        role_id = await self._repository.get_role_id_by_code("user")
         if role_id is None:
             raise ValidationError("Default role is not configured.")
-        self._repository.assign_role(user.id, role_id)
+        await self._repository.assign_role(user.id, role_id)
 
         tokens = issue_token_pair(
             user.id,
@@ -68,13 +68,13 @@ class IdentityAuthUseCases:
         logger.info("Signup succeeded user_id=%s username=%s", user.id, user.username)
         return AuthResult(user=user, **tokens)
 
-    def login(self, login: str, password: str) -> AuthResult:
+    async def login(self, login: str, password: str) -> AuthResult:
         if not login.strip() or not password:
             raise ValidationError("Login and password are required.")
 
         login_value = login.strip()
         logger.info("Login attempt login=%s", _mask_login(login_value))
-        user_auth = self._repository.get_user_auth_by_login(login_value)
+        user_auth = await self._repository.get_user_auth_by_login(login_value)
         if user_auth is None or not verify_password(password, user_auth.password_hash):
             logger.info("Login failed: invalid credentials login=%s", _mask_login(login_value))
             raise AuthenticationError("Invalid username/email or password.")
@@ -82,7 +82,7 @@ class IdentityAuthUseCases:
             logger.info("Login failed: inactive user user_id=%s", user_auth.id)
             raise AuthenticationError("User is not active.")
 
-        user = self._repository.get_user_by_id(user_auth.id)
+        user = await self._repository.get_user_by_id(user_auth.id)
         if user is None:
             raise AuthenticationError("User is not found.")
 
@@ -95,7 +95,7 @@ class IdentityAuthUseCases:
         logger.info("Login succeeded user_id=%s", user.id)
         return AuthResult(user=user, **tokens)
 
-    def refresh(self, refresh_token: str) -> AuthResult:
+    async def refresh(self, refresh_token: str) -> AuthResult:
         logger.info("Refresh token attempt.")
         payload = decode_jwt(refresh_token, self._jwt_secret)
         token_type = payload.get("type")
@@ -110,7 +110,7 @@ class IdentityAuthUseCases:
         except ValueError as exc:
             raise AuthenticationError("Invalid token subject.") from exc
 
-        user = self._repository.get_user_by_id(user_id)
+        user = await self._repository.get_user_by_id(user_id)
         if user is None:
             raise AuthenticationError("User is not found.")
         if user.status != "active":
@@ -125,7 +125,7 @@ class IdentityAuthUseCases:
         logger.info("Refresh token succeeded user_id=%s", user.id)
         return AuthResult(user=user, **tokens)
 
-    def get_current_user(self, access_token: str) -> IdentityUserReadModel:
+    async def get_current_user(self, access_token: str) -> IdentityUserReadModel:
         payload = decode_jwt(access_token, self._jwt_secret)
         token_type = payload.get("type")
         if token_type != "access":
@@ -139,7 +139,7 @@ class IdentityAuthUseCases:
         except ValueError as exc:
             raise AuthenticationError("Invalid token subject.") from exc
 
-        user = self._repository.get_user_by_id(user_id)
+        user = await self._repository.get_user_by_id(user_id)
         if user is None:
             raise AuthenticationError("User is not found.")
         if user.status != "active":

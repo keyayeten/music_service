@@ -65,13 +65,13 @@ class AlbumListFilter:
 
 
 class CatalogRepository(Protocol):
-    def get_user_role_codes(self, user_id: UUID) -> list[str]:
+    async def get_user_role_codes(self, user_id: UUID) -> list[str]:
         """List role codes assigned to user."""
 
-    def get_composer_profile_id_by_user_id(self, user_id: UUID) -> UUID | None:
+    async def get_composer_profile_id_by_user_id(self, user_id: UUID) -> UUID | None:
         """Resolve composer profile id for identity user."""
 
-    def create_track(
+    async def create_track(
         self,
         *,
         title: str,
@@ -81,7 +81,7 @@ class CatalogRepository(Protocol):
     ) -> TrackReadModel:
         """Create draft track and assign the primary author."""
 
-    def update_track(
+    async def update_track(
         self,
         *,
         track_id: UUID,
@@ -91,19 +91,19 @@ class CatalogRepository(Protocol):
     ) -> TrackReadModel | None:
         """Update mutable track fields."""
 
-    def replace_track_authors(self, track_id: UUID, authors: list[TrackAuthorReadModel]) -> None:
+    async def replace_track_authors(self, track_id: UUID, authors: list[TrackAuthorReadModel]) -> None:
         """Replace all track author records."""
 
-    def set_track_status(self, track_id: UUID, status: str, published_at: datetime | None) -> TrackReadModel | None:
+    async def set_track_status(self, track_id: UUID, status: str, published_at: datetime | None) -> TrackReadModel | None:
         """Set status and publication timestamp."""
 
-    def get_track_by_id(self, track_id: UUID) -> TrackReadModel | None:
+    async def get_track_by_id(self, track_id: UUID) -> TrackReadModel | None:
         """Return track projection with related authors/genres."""
 
-    def list_tracks(self, filters: TrackListFilter) -> list[TrackReadModel]:
+    async def list_tracks(self, filters: TrackListFilter) -> list[TrackReadModel]:
         """Return track projections by filter."""
 
-    def create_album(
+    async def create_album(
         self,
         *,
         owner_composer_id: UUID,
@@ -113,7 +113,7 @@ class CatalogRepository(Protocol):
     ) -> AlbumReadModel:
         """Create draft album."""
 
-    def update_album(
+    async def update_album(
         self,
         *,
         album_id: UUID,
@@ -123,14 +123,14 @@ class CatalogRepository(Protocol):
     ) -> AlbumReadModel | None:
         """Update album fields."""
 
-    def replace_album_tracks(self, album_id: UUID, track_ids: list[UUID]) -> None:
+    async def replace_album_tracks(self, album_id: UUID, track_ids: list[UUID]) -> None:
         """Replace album track composition preserving provided order."""
 
-    def set_album_status(self, album_id: UUID, status: str) -> AlbumReadModel | None:
+    async def set_album_status(self, album_id: UUID, status: str) -> AlbumReadModel | None:
         """Set album publication status."""
 
-    def get_album_by_id(self, album_id: UUID) -> AlbumReadModel | None:
+    async def get_album_by_id(self, album_id: UUID) -> AlbumReadModel | None:
         """Return album with ordered track items."""
 
-    def list_albums(self, filters: AlbumListFilter) -> list[AlbumReadModel]:
+    async def list_albums(self, filters: AlbumListFilter) -> list[AlbumReadModel]:
         """Return album projections by filter."""

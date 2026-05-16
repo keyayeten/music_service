@@ -1,6 +1,6 @@
 import logging
 
-from redis import Redis
+from redis.asyncio import Redis
 
 from backend.config.settings import get_settings
 
@@ -27,16 +27,16 @@ def get_redis_client() -> Redis:
     return init_redis_client()
 
 
-def close_redis_client() -> None:
+async def close_redis_client() -> None:
     global _redis_client
     if _redis_client is not None:
         logger.info("Closing Redis client.")
-        _redis_client.close()
+        await _redis_client.aclose()
     _redis_client = None
 
 
-def check_redis_connection() -> bool:
-    is_alive = bool(get_redis_client().ping())
+async def check_redis_connection() -> bool:
+    is_alive = bool(await get_redis_client().ping())
     if is_alive:
         logger.debug("Redis connection check succeeded.")
     else:

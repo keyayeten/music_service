@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from sqlalchemy import desc, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.domain.moderation.repositories import (
     ModerationActionReadModel,
@@ -16,10 +16,10 @@ from backend.infrastructure.persistence.models.moderation import ModerationActio
 
 
 class SqlAlchemyModerationRepository(ModerationRepository):
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    def create_report(
+    async def create_report(
         self,
         *,
         reporter_user_id: UUID,
@@ -35,33 +35,35 @@ class SqlAlchemyModerationRepository(ModerationRepository):
             status="open",
         )
         self._session.add(report)
-        self._session.flush()
+        await self._session.flush()
+        await self._session.refresh(report)
         return _to_report_read_model(report)
 
-    def list_reports(self, filters: ReportListFilter) -> list[ReportReadModel]:
+    async def list_reports(self, filters: ReportListFilter) -> list[ReportReadModel]:
         query = select(Report).order_by(desc(Report.created_at))
         if filters.status is not None:
             query = query.where(Report.status == filters.status)
         if filters.target_type is not None:
             query = query.where(Report.target_type == filters.target_type)
-        rows = self._session.execute(query).scalars()
+        rows = (await self._session.execute(query)).scalars()
         return [_to_report_read_model(row) for row in rows]
 
-    def get_report_by_id(self, report_id: UUID) -> ReportReadModel | None:
-        report = self._session.get(Report, report_id)
+    async def get_report_by_id(self, report_id: UUID) -> ReportReadModel | None:
+        report = await self._session.get(Report, report_id)
         if report is None:
             return None
         return _to_report_read_model(report)
 
-    def set_report_status(self, report_id: UUID, status: str) -> ReportReadModel | None:
-        report = self._session.get(Report, report_id)
+    async def set_report_status(self, report_id: UUID, status: str) -> ReportReadModel | None:
+        report = await self._session.get(Report, report_id)
         if report is None:
             return None
         report.status = status
-        self._session.flush()
+        await self._session.flush()
+        await self._session.refresh(report)
         return _to_report_read_model(report)
 
-    def create_moderation_action(
+    async def create_moderation_action(
         self,
         *,
         actor_user_id: UUID,
@@ -78,31 +80,31 @@ class SqlAlchemyModerationRepository(ModerationRepository):
             meta=metadata,
         )
         self._session.add(moderation_action)
-        self._session.flush()
+        await self._session.flush()
         return _to_moderation_action_read_model(moderation_action)
 
-    def list_moderation_actions_by_target(
+    async def list_moderation_actions_by_target(
         self,
         *,
         target_type: str,
         target_id: UUID,
     ) -> list[ModerationActionReadModel]:
-        rows = self._session.execute(
+        rows = (await self._session.execute(
             select(ModerationAction)
             .where(
                 ModerationAction.target_type == target_type,
                 ModerationAction.target_id == target_id,
             )
             .order_by(desc(ModerationAction.created_at))
-        ).scalars()
+        )).scalars()
         return [_to_moderation_action_read_model(row) for row in rows]
 
-    def has_role(self, user_id: UUID, role_code: str) -> bool:
-        row = self._session.execute(
+    async def has_role(self, user_id: UUID, role_code: str) -> bool:
+        row = (await self._session.execute(
             select(Role.code)
             .join(UserRole, UserRole.role_id == Role.id)
             .where(UserRole.user_id == user_id, Role.code == role_code)
-        ).scalar_one_or_none()
+        )).scalar_one_or_none()
         return row is not None
 
 

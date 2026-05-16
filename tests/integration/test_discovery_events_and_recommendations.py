@@ -7,6 +7,7 @@ from sqlalchemy import text
 
 from backend.application.discovery.use_cases.events_and_recommendations import DiscoveryUseCases
 from backend.infrastructure.persistence.repositories.discovery import SqlAlchemyDiscoveryRepository
+from tests.async_tools import AsyncSessionAdapter, run_async
 
 
 def _insert_user(db_session) -> UUID:
@@ -87,10 +88,10 @@ def test_save_event_for_album_creates_track_events_with_relations(db_session) ->
     first_track_id = _insert_track(db_session, "Discovery Album Track A", likes_count=1)
     second_track_id = _insert_track(db_session, "Discovery Album Track B", likes_count=2)
     album_id = _insert_album_with_tracks(db_session, [first_track_id, second_track_id])
-    repository = SqlAlchemyDiscoveryRepository(db_session)
+    repository = SqlAlchemyDiscoveryRepository(AsyncSessionAdapter(db_session))
     use_cases = DiscoveryUseCases(repository=repository)
 
-    use_cases.record_save_events(user_id, item_type="album", item_id=album_id)
+    run_async(use_cases.record_save_events(user_id, item_type="album", item_id=album_id))
     db_session.commit()
 
     rows = db_session.execute(
@@ -111,11 +112,11 @@ def test_save_event_for_album_creates_track_events_with_relations(db_session) ->
 
 @pytest.mark.integration
 def test_top_recommendations_are_deterministic_by_score(db_session) -> None:
-    repository = SqlAlchemyDiscoveryRepository(db_session)
+    repository = SqlAlchemyDiscoveryRepository(AsyncSessionAdapter(db_session))
     first_track_id = _insert_track(db_session, "Top A", likes_count=1000)
     second_track_id = _insert_track(db_session, "Top B", likes_count=900)
 
-    result = repository.get_top_published_tracks(limit=200)
+    result = run_async(repository.get_top_published_tracks(limit=200))
     ranked_ids = [item.track_id for item in result]
 
     assert first_track_id in ranked_ids

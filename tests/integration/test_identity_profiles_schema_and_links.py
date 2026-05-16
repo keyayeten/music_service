@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.application.identity.use_cases.profiles import COMPOSER_PROFILE_TYPE, IdentityProfilesUseCases
 from backend.infrastructure.persistence.repositories.identity_auth import SqlAlchemyIdentityAuthRepository
+from tests.async_tools import AsyncSessionAdapter, run_async
 
 
 @pytest.mark.integration
@@ -110,24 +111,28 @@ def test_user_role_profiles_profile_type_check_constraint(db_session) -> None:
 
 @pytest.mark.integration
 def test_update_profile_syncs_user_role_profiles_link(db_session) -> None:
-    repository = SqlAlchemyIdentityAuthRepository(db_session)
-    user = repository.create_user(
-        email=f"{uuid4().hex}@example.com",
-        username=f"user_{uuid4().hex[:10]}",
-        password_hash="hash",
+    repository = SqlAlchemyIdentityAuthRepository(AsyncSessionAdapter(db_session))
+    user = run_async(
+        repository.create_user(
+            email=f"{uuid4().hex}@example.com",
+            username=f"user_{uuid4().hex[:10]}",
+            password_hash="hash",
+        )
     )
-    repository.ensure_roles_seeded()
-    composer_role_id = repository.get_role_id_by_code("composer")
+    run_async(repository.ensure_roles_seeded())
+    composer_role_id = run_async(repository.get_role_id_by_code("composer"))
     assert composer_role_id is not None
-    repository.assign_role(user.id, composer_role_id)
+    run_async(repository.assign_role(user.id, composer_role_id))
     db_session.commit()
 
     use_cases = IdentityProfilesUseCases(repository=repository)
-    profile_result = use_cases.update_my_profile(
-        user.id,
-        display_name="Composer Profile",
-        bio="Bio",
-        country_code="UA",
+    profile_result = run_async(
+        use_cases.update_my_profile(
+            user.id,
+            display_name="Composer Profile",
+            bio="Bio",
+            country_code="UA",
+        )
     )
     db_session.commit()
 

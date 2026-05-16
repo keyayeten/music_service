@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 psycopg[binary]
+asyncpg
 redis
 python-dotenv
 alembic

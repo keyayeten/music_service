@@ -26,7 +26,7 @@ class CatalogAlbumUseCases:
     def __init__(self, repository: CatalogRepository) -> None:
         self._repository = repository
 
-    def create_album(
+    async def create_album(
         self,
         actor_user_id: UUID,
         *,
@@ -36,15 +36,15 @@ class CatalogAlbumUseCases:
     ) -> AlbumReadModel:
         normalized_title = _normalize_title(title)
         normalized_description = _normalize_optional_text(description)
-        composer_profile_id = self._require_composer_profile(actor_user_id)
-        return self._repository.create_album(
+        composer_profile_id = await self._require_composer_profile(actor_user_id)
+        return await self._repository.create_album(
             owner_composer_id=composer_profile_id,
             title=normalized_title,
             description=normalized_description,
             release_date=release_date,
         )
 
-    def update_album(
+    async def update_album(
         self,
         actor_user_id: UUID,
         *,
@@ -55,11 +55,11 @@ class CatalogAlbumUseCases:
     ) -> AlbumReadModel:
         normalized_title = _normalize_title(title)
         normalized_description = _normalize_optional_text(description)
-        composer_profile_id = self._require_composer_profile(actor_user_id)
-        album = self._require_owned_album(album_id, composer_profile_id)
+        composer_profile_id = await self._require_composer_profile(actor_user_id)
+        album = await self._require_owned_album(album_id, composer_profile_id)
         if album.status not in {"draft", "rejected", "hidden"}:
             raise ValidationError("Only draft, rejected or hidden albums can be edited.")
-        updated = self._repository.update_album(
+        updated = await self._repository.update_album(
             album_id=album_id,
             title=normalized_title,
             description=normalized_description,
@@ -69,65 +69,65 @@ class CatalogAlbumUseCases:
             raise ValidationError("Album is not found.")
         return updated
 
-    def replace_album_tracks(self, actor_user_id: UUID, *, album_id: UUID, track_ids: list[UUID]) -> AlbumReadModel:
+    async def replace_album_tracks(self, actor_user_id: UUID, *, album_id: UUID, track_ids: list[UUID]) -> AlbumReadModel:
         if not track_ids:
             raise ValidationError("Album should contain at least one track.")
         deduplicated_track_ids = list(dict.fromkeys(track_ids))
-        composer_profile_id = self._require_composer_profile(actor_user_id)
-        album = self._require_owned_album(album_id, composer_profile_id)
+        composer_profile_id = await self._require_composer_profile(actor_user_id)
+        album = await self._require_owned_album(album_id, composer_profile_id)
         if album.status not in {"draft", "rejected", "hidden"}:
             raise ValidationError("Tracks can be changed only for draft, rejected or hidden albums.")
-        self._repository.replace_album_tracks(album_id, deduplicated_track_ids)
-        refreshed = self._repository.get_album_by_id(album_id)
+        await self._repository.replace_album_tracks(album_id, deduplicated_track_ids)
+        refreshed = await self._repository.get_album_by_id(album_id)
         if refreshed is None:
             raise ValidationError("Album is not found.")
         return refreshed
 
-    def publish_album(self, actor_user_id: UUID, *, album_id: UUID) -> AlbumReadModel:
-        composer_profile_id = self._require_composer_profile(actor_user_id)
-        album = self._require_owned_album(album_id, composer_profile_id)
+    async def publish_album(self, actor_user_id: UUID, *, album_id: UUID) -> AlbumReadModel:
+        composer_profile_id = await self._require_composer_profile(actor_user_id)
+        album = await self._require_owned_album(album_id, composer_profile_id)
         if (album.status, "published") not in COMPOSER_ALLOWED_PUBLISH_TRANSITIONS:
             raise ValidationError("Composer cannot publish album from current status.")
-        updated = self._repository.set_album_status(album_id, "published")
+        updated = await self._repository.set_album_status(album_id, "published")
         if updated is None:
             raise ValidationError("Album is not found.")
         return updated
 
-    def submit_album_for_review(self, actor_user_id: UUID, *, album_id: UUID) -> AlbumReadModel:
-        composer_profile_id = self._require_composer_profile(actor_user_id)
-        album = self._require_owned_album(album_id, composer_profile_id)
+    async def submit_album_for_review(self, actor_user_id: UUID, *, album_id: UUID) -> AlbumReadModel:
+        composer_profile_id = await self._require_composer_profile(actor_user_id)
+        album = await self._require_owned_album(album_id, composer_profile_id)
         if (album.status, "pending_review") not in COMPOSER_ALLOWED_REVIEW_TRANSITIONS:
             raise ValidationError("Album cannot be sent to review from current status.")
-        updated = self._repository.set_album_status(album_id, "pending_review")
+        updated = await self._repository.set_album_status(album_id, "pending_review")
         if updated is None:
             raise ValidationError("Album is not found.")
         return updated
 
-    def moderate_album(self, actor_roles: list[str], *, album_id: UUID, target_status: str) -> AlbumReadModel:
+    async def moderate_album(self, actor_roles: list[str], *, album_id: UUID, target_status: str) -> AlbumReadModel:
         normalized_status = target_status.strip().lower()
         if normalized_status not in ALBUM_STATUSES:
             raise ValidationError("Unsupported album status.")
         if not any(role in MODERATION_ROLES for role in actor_roles):
             raise AuthorizationError("Moderator or admin role is required.")
-        album = self._repository.get_album_by_id(album_id)
+        album = await self._repository.get_album_by_id(album_id)
         if album is None:
             raise ValidationError("Album is not found.")
         if (album.status, normalized_status) not in MODERATOR_ALLOWED_TRANSITIONS:
             raise ValidationError("Invalid moderation status transition.")
-        updated = self._repository.set_album_status(album_id, normalized_status)
+        updated = await self._repository.set_album_status(album_id, normalized_status)
         if updated is None:
             raise ValidationError("Album is not found.")
         return updated
 
-    def get_album(self, album_id: UUID, *, include_unpublished: bool) -> AlbumReadModel:
-        album = self._repository.get_album_by_id(album_id)
+    async def get_album(self, album_id: UUID, *, include_unpublished: bool) -> AlbumReadModel:
+        album = await self._repository.get_album_by_id(album_id)
         if album is None:
             raise ValidationError("Album is not found.")
         if not include_unpublished and album.status != "published":
             raise ValidationError("Album is not published.")
         return album
 
-    def list_albums(
+    async def list_albums(
         self,
         *,
         status: str | None,
@@ -142,15 +142,15 @@ class CatalogAlbumUseCases:
             owner_composer_id=owner_composer_id,
             include_unpublished=include_unpublished,
         )
-        return self._repository.list_albums(filters)
+        return await self._repository.list_albums(filters)
 
-    def _require_composer_profile(self, actor_user_id: UUID) -> UUID:
-        roles = self._repository.get_user_role_codes(actor_user_id)
-        composer_profile_id = self._repository.get_composer_profile_id_by_user_id(actor_user_id)
+    async def _require_composer_profile(self, actor_user_id: UUID) -> UUID:
+        roles = await self._repository.get_user_role_codes(actor_user_id)
+        composer_profile_id = await self._repository.get_composer_profile_id_by_user_id(actor_user_id)
         return ensure_composer_access(actor_user_id, actor_roles=roles, composer_profile_id=composer_profile_id)
 
-    def _require_owned_album(self, album_id: UUID, composer_profile_id: UUID) -> AlbumReadModel:
-        album = self._repository.get_album_by_id(album_id)
+    async def _require_owned_album(self, album_id: UUID, composer_profile_id: UUID) -> AlbumReadModel:
+        album = await self._repository.get_album_by_id(album_id)
         if album is None:
             raise ValidationError("Album is not found.")
         if album.owner_composer_id != composer_profile_id:

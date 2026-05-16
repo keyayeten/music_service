@@ -6,11 +6,11 @@ import pytest
 from fastapi.testclient import TestClient
 from redis import Redis
 from sqlalchemy import text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
 
 from backend.config.settings import get_settings
-from backend.infrastructure.cache.redis_client import get_redis_client
-from backend.infrastructure.persistence.database import get_session
 from backend.main import create_app
 
 
@@ -35,7 +35,9 @@ def client(app, db_session, redis_client) -> Generator[TestClient, None, None]:
 
 def _require_db_service() -> None:
     settings = get_settings()
-    parsed = urlparse(settings.database_url.replace("postgresql+psycopg://", "postgresql://"))
+    parsed = urlparse(
+        settings.database_url.replace("postgresql+asyncpg://", "postgresql://").replace("postgresql+psycopg://", "postgresql://")
+    )
     host = parsed.hostname or "localhost"
     port = parsed.port or 5432
     if not _service_ready(host, port):
@@ -68,18 +70,25 @@ def _require_redis(client: Redis) -> None:
 @pytest.fixture()
 def db_session() -> Generator[Session, None, None]:
     _require_db_service()
-    session_generator = get_session()
-    session = next(session_generator)
+    settings = get_settings()
+    sync_database_url = settings.database_url.replace("+asyncpg", "+psycopg")
+    engine = create_engine(sync_database_url, pool_pre_ping=True)
+    session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+    session = session_factory()
     _require_db(session)
     try:
         yield session
     finally:
-        session_generator.close()
+        session.close()
+        engine.dispose()
 
 
 @pytest.fixture()
-def redis_client() -> Redis:
+def redis_client() -> Generator[Redis, None, None]:
     _require_redis_service()
-    redis_instance = get_redis_client()
+    redis_instance = Redis.from_url(get_settings().redis_url, decode_responses=True)
     _require_redis(redis_instance)
-    return redis_instance
+    try:
+        yield redis_instance
+    finally:
+        redis_instance.close()

@@ -12,13 +12,13 @@ router = APIRouter(prefix="/discovery", tags=["discovery"])
 
 
 @router.get("/recommendations/tracks", response_model=ListRecommendedTracksResponse)
-def list_track_recommendations(
+async def list_track_recommendations(
     limit: int = Query(default=20),
     user: IdentityUserReadModel | None = Depends(get_optional_identity_user),
     use_cases: DiscoveryUseCases = Depends(get_discovery_use_cases),
 ) -> ListRecommendedTracksResponse:
     try:
-        items = use_cases.list_recommended_tracks(
+        items = await use_cases.list_recommended_tracks(
             actor_user_id=user.id if user else None,
             limit=limit,
         )

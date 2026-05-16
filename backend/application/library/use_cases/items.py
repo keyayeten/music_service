@@ -16,7 +16,7 @@ class LibraryItemUseCases:
     def __init__(self, repository: LibraryRepository) -> None:
         self._repository = repository
 
-    def add_item(
+    async def add_item(
         self,
         actor_user_id: UUID,
         *,
@@ -26,25 +26,25 @@ class LibraryItemUseCases:
     ) -> LibraryItemReadModel:
         normalized_item_type = _normalize_item_type(item_type)
         normalized_section = _normalize_section(section)
-        if not self._repository.item_exists(normalized_item_type, item_id):
+        if not await self._repository.item_exists(normalized_item_type, item_id):
             raise ValidationError("Library item target is not found.")
-        return self._repository.add_library_item(
+        return await self._repository.add_library_item(
             user_id=actor_user_id,
             item_type=normalized_item_type,
             item_id=item_id,
             section=normalized_section,
         )
 
-    def remove_item(self, actor_user_id: UUID, *, item_type: str, item_id: UUID) -> None:
+    async def remove_item(self, actor_user_id: UUID, *, item_type: str, item_id: UUID) -> None:
         normalized_item_type = _normalize_item_type(item_type)
-        if not self._repository.remove_library_item(
+        if not await self._repository.remove_library_item(
             user_id=actor_user_id,
             item_type=normalized_item_type,
             item_id=item_id,
         ):
             raise ValidationError("Library item is not found.")
 
-    def list_items(
+    async def list_items(
         self,
         actor_user_id: UUID,
         *,
@@ -59,7 +59,7 @@ class LibraryItemUseCases:
             raise ValidationError("Offset should be a non-negative number.")
         normalized_section = _normalize_section(section) if section is not None else None
         normalized_item_type = _normalize_item_type(item_type) if item_type is not None else None
-        return self._repository.list_library_items(
+        return await self._repository.list_library_items(
             LibraryListFilter(
                 user_id=actor_user_id,
                 section=normalized_section,

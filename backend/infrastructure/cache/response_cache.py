@@ -6,7 +6,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from redis import Redis
+from redis.asyncio import Redis
 
 from backend.config.settings import Settings
 
@@ -24,23 +24,23 @@ class ApiResponseCache:
         suffix = "|".join(normalized_parts) if normalized_parts else "all"
         return f"{self.settings.redis_key_prefix}:http:{namespace}:{suffix}"
 
-    def get_json(self, key: str) -> dict | None:
-        raw_value = self.redis_client.get(key)
+    async def get_json(self, key: str) -> dict | None:
+        raw_value = await self.redis_client.get(key)
         if raw_value is None:
             return None
         return json.loads(raw_value)
 
-    def set_json(self, key: str, payload: dict, ttl_seconds: int) -> None:
-        self.redis_client.setex(key, ttl_seconds, json.dumps(payload, separators=(",", ":"), ensure_ascii=True))
+    async def set_json(self, key: str, payload: dict, ttl_seconds: int) -> None:
+        await self.redis_client.setex(key, ttl_seconds, json.dumps(payload, separators=(",", ":"), ensure_ascii=True))
 
-    def delete_key(self, key: str) -> None:
-        self.redis_client.delete(key)
+    async def delete_key(self, key: str) -> None:
+        await self.redis_client.delete(key)
 
-    def delete_namespace(self, namespace: str) -> int:
+    async def delete_namespace(self, namespace: str) -> int:
         pattern = f"{self.settings.redis_key_prefix}:http:{namespace}:*"
         deleted = 0
-        for key in self.redis_client.scan_iter(match=pattern):
-            deleted += int(self.redis_client.delete(key))
+        async for key in self.redis_client.scan_iter(match=pattern):
+            deleted += int(await self.redis_client.delete(key))
         return deleted
 
     def ttl_for_catalog_reads(self) -> int:

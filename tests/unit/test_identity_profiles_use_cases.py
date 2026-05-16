@@ -8,6 +8,7 @@ import pytest
 from backend.application.identity.use_cases.profiles import COMPOSER_PROFILE_TYPE, IdentityProfilesUseCases
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
 from backend.domain.identity.repositories import ComposerProfileReadModel, IdentityUserReadModel
+from tests.async_tools import run_async
 
 
 class _FakeIdentityRepository:
@@ -23,23 +24,23 @@ class _FakeIdentityRepository:
         self.composer_profile: ComposerProfileReadModel | None = None
         self.linked_profile: tuple[UUID, int, str, UUID] | None = None
 
-    def get_user_by_id(self, user_id: UUID) -> IdentityUserReadModel | None:
+    async def get_user_by_id(self, user_id: UUID) -> IdentityUserReadModel | None:
         return self.user if user_id == self.user.id else None
 
-    def get_user_role_codes(self, user_id: UUID) -> list[str]:
+    async def get_user_role_codes(self, user_id: UUID) -> list[str]:
         if user_id != self.user.id:
             return []
         return list(self.role_codes)
 
-    def get_role_id_by_code(self, code: str) -> int | None:
+    async def get_role_id_by_code(self, code: str) -> int | None:
         return self.role_id_by_code.get(code)
 
-    def get_composer_profile_by_user_id(self, user_id: UUID) -> ComposerProfileReadModel | None:
+    async def get_composer_profile_by_user_id(self, user_id: UUID) -> ComposerProfileReadModel | None:
         if user_id != self.user.id:
             return None
         return self.composer_profile
 
-    def upsert_composer_profile(
+    async def upsert_composer_profile(
         self,
         *,
         user_id: UUID,
@@ -65,7 +66,7 @@ class _FakeIdentityRepository:
         )
         return self.composer_profile
 
-    def upsert_user_role_profile(
+    async def upsert_user_role_profile(
         self,
         *,
         user_id: UUID,
@@ -83,11 +84,13 @@ def test_update_profile_requires_composer_role() -> None:
     use_cases = IdentityProfilesUseCases(repository=repository)
 
     with pytest.raises(AuthorizationError):
-        use_cases.update_my_profile(
-            repository.user.id,
-            display_name="Composer",
-            bio="Bio",
-            country_code="US",
+        run_async(
+            use_cases.update_my_profile(
+                repository.user.id,
+                display_name="Composer",
+                bio="Bio",
+                country_code="US",
+            )
         )
 
 
@@ -96,11 +99,13 @@ def test_update_profile_links_role_profile() -> None:
     repository = _FakeIdentityRepository()
     use_cases = IdentityProfilesUseCases(repository=repository)
 
-    result = use_cases.update_my_profile(
-        repository.user.id,
-        display_name="Composer Name",
-        bio="Short bio",
-        country_code="us",
+    result = run_async(
+        use_cases.update_my_profile(
+            repository.user.id,
+            display_name="Composer Name",
+            bio="Short bio",
+            country_code="us",
+        )
     )
 
     assert result.composer_profile is not None
@@ -116,9 +121,11 @@ def test_update_profile_validates_country_code() -> None:
     use_cases = IdentityProfilesUseCases(repository=repository)
 
     with pytest.raises(ValidationError):
-        use_cases.update_my_profile(
-            repository.user.id,
-            display_name="Composer Name",
-            bio="Bio",
-            country_code="USA",
+        run_async(
+            use_cases.update_my_profile(
+                repository.user.id,
+                display_name="Composer Name",
+                bio="Bio",
+                country_code="USA",
+            )
         )

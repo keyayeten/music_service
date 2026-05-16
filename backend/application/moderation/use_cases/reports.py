@@ -26,58 +26,58 @@ class ModerationReportUseCases:
     def __init__(self, repository: ModerationRepository) -> None:
         self._repository = repository
 
-    def create_report(self, actor_user_id: UUID, *, target_type: str, target_id: UUID, reason: str) -> ReportReadModel:
+    async def create_report(self, actor_user_id: UUID, *, target_type: str, target_id: UUID, reason: str) -> ReportReadModel:
         ensure_any_role(
-            self._resolve_roles(actor_user_id),
+            await self._resolve_roles(actor_user_id),
             allowed_roles={USER_ROLE, "composer", "moderator", "admin"},
             message="User role is required to create reports.",
         )
         normalized_target_type = _normalize_target_type(target_type)
         normalized_reason = _normalize_reason(reason)
-        return self._repository.create_report(
+        return await self._repository.create_report(
             reporter_user_id=actor_user_id,
             target_type=normalized_target_type,
             target_id=target_id,
             reason=normalized_reason,
         )
 
-    def list_reports(self, actor_user_id: UUID, *, status: str | None, target_type: str | None) -> list[ReportReadModel]:
+    async def list_reports(self, actor_user_id: UUID, *, status: str | None, target_type: str | None) -> list[ReportReadModel]:
         ensure_any_role(
-            self._resolve_roles(actor_user_id),
+            await self._resolve_roles(actor_user_id),
             allowed_roles=MODERATION_ROLES,
             message="Moderator or admin role is required.",
         )
         normalized_status = _normalize_status(status) if status is not None else None
         normalized_target_type = _normalize_target_type(target_type) if target_type is not None else None
-        return self._repository.list_reports(ReportListFilter(status=normalized_status, target_type=normalized_target_type))
+        return await self._repository.list_reports(ReportListFilter(status=normalized_status, target_type=normalized_target_type))
 
-    def get_report(self, actor_user_id: UUID, *, report_id: UUID) -> ReportReadModel:
+    async def get_report(self, actor_user_id: UUID, *, report_id: UUID) -> ReportReadModel:
         ensure_any_role(
-            self._resolve_roles(actor_user_id),
+            await self._resolve_roles(actor_user_id),
             allowed_roles=MODERATION_ROLES,
             message="Moderator or admin role is required.",
         )
-        report = self._repository.get_report_by_id(report_id)
+        report = await self._repository.get_report_by_id(report_id)
         if report is None:
             raise ValidationError("Report is not found.")
         return report
 
-    def set_report_status(self, actor_user_id: UUID, *, report_id: UUID, target_status: str) -> ReportStatusUpdateResult:
+    async def set_report_status(self, actor_user_id: UUID, *, report_id: UUID, target_status: str) -> ReportStatusUpdateResult:
         ensure_any_role(
-            self._resolve_roles(actor_user_id),
+            await self._resolve_roles(actor_user_id),
             allowed_roles=MODERATION_ROLES,
             message="Moderator or admin role is required.",
         )
         normalized_target_status = _normalize_status(target_status)
-        report = self._repository.get_report_by_id(report_id)
+        report = await self._repository.get_report_by_id(report_id)
         if report is None:
             raise ValidationError("Report is not found.")
         if (report.status, normalized_target_status) not in REPORT_STATUS_TRANSITIONS:
             raise ValidationError("Invalid report status transition.")
-        updated_report = self._repository.set_report_status(report_id, normalized_target_status)
+        updated_report = await self._repository.set_report_status(report_id, normalized_target_status)
         if updated_report is None:
             raise ValidationError("Report is not found.")
-        action = self._repository.create_moderation_action(
+        action = await self._repository.create_moderation_action(
             actor_user_id=actor_user_id,
             target_type="report",
             target_id=report_id,
@@ -89,11 +89,11 @@ class ModerationReportUseCases:
         )
         return ReportStatusUpdateResult(report=updated_report, audit_action_id=action.id)
 
-    def _resolve_roles(self, user_id: UUID) -> list[str]:
+    async def _resolve_roles(self, user_id: UUID) -> list[str]:
         return [
             role
             for role in ("admin", "moderator", "composer", "user")
-            if self._repository.has_role(user_id, role)
+            if await self._repository.has_role(user_id, role)
         ]
 
 
