@@ -5,7 +5,7 @@ COMPOSE_FILE ?= infra/docker/docker-compose.yml
 COMPOSE_PROJECT_NAME ?= music_service
 COMPOSE ?= docker compose -p $(COMPOSE_PROJECT_NAME) -f $(COMPOSE_FILE) --env-file .env
 
-.PHONY: init-env install run-native infra-up infra-down infra-logs up down logs ps migrate migrate-docker test test-unit test-integration test-api test-e2e smoke-health wait-infra migrate-clean pre-merge
+.PHONY: init-env install run-native infra-up infra-down infra-logs up down logs ps migrate migrate-docker test test-unit test-integration test-api test-e2e smoke-health wait-infra migrate-clean pre-merge cli-hello fixtures-seed fixtures-stats
 
 init-env:
 	@$(PYTHON) -c "from pathlib import Path; src=Path('.env.example'); dst=Path('.env'); exists=dst.exists(); dst.write_text(src.read_text(), encoding='utf-8') if (src.exists() and not exists) else None; print('.env created from .env.example' if (src.exists() and not exists) else '.env already exists')"
@@ -61,6 +61,15 @@ test-e2e: init-env
 
 smoke-health: init-env
 	$(PYTHON) scripts/smoke_health.py
+
+cli-hello: init-env
+	$(PYTHON) -m backend.cli hello --name "Developer"
+
+fixtures-seed: init-env
+	$(PYTHON) -m backend.cli fixtures seed
+
+fixtures-stats: init-env
+	$(PYTHON) -m backend.cli fixtures stats
 
 wait-infra: init-env
 	$(PYTHON) scripts/wait_infra.py

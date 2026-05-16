@@ -259,7 +259,61 @@ RBAC правило Stage 7 для write-каталога:
 - `make test-api` — запустить только api-тесты.
 - `make test-e2e` — запустить только e2e-сценарии.
 - `make pre-merge` — локальный quality gate (чистая БД + миграции + тесты + smoke health-check).
+- `make cli-hello` — пример запуска CLI-команды на `Typer`.
+- `make fixtures-seed` — сгенерировать массовые фикстуры (append-only).
+- `make fixtures-stats` — вывести агрегированную статистику по данным.
 - Релизный чеклист Stage 8: `docs/release-checklist.md`.
+
+## CLI на Typer
+
+В проект добавлен CLI на базе `Typer`:
+
+```bash
+python -m backend.cli --help
+```
+
+Пример команды:
+
+```bash
+python -m backend.cli hello --name Vlad
+```
+
+Или через `make`:
+
+```bash
+make cli-hello
+```
+
+### Fixtures CLI
+
+Команда для массового наполнения БД фикстурными данными (append-only, без очистки существующих данных):
+
+```bash
+python -m backend.cli fixtures seed --users 1000 --tracks 10000 --albums 100 --playlists 1000
+```
+
+Быстрый запуск через `make`:
+
+```bash
+make fixtures-seed
+```
+
+Посмотреть агрегаты и распределения по статусам/visibility/event type:
+
+```bash
+python -m backend.cli fixtures stats
+```
+
+или:
+
+```bash
+make fixtures-stats
+```
+
+Полезные параметры:
+
+- `--batch-size` — размер батча для bulk insert (по умолчанию `500`);
+- `seed` покрывает кейсы Stage 1-8: роли/RBAC, статусы каталога, visibility плейлистов, social/discovery/moderation сущности.
 
 ## Troubleshooting
 
