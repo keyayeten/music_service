@@ -1,0 +1,208 @@
+{
+  "info": {
+    "_postman_id": "e2c24a77-0d18-45eb-a08c-bef336f95851",
+    "name": "music_service Stage 1 Identity/Auth",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Stage 1 manual checks for signup/login/refresh/me."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "email",
+      "value": "stage1_user@example.com"
+    },
+    {
+      "key": "username",
+      "value": "stage1_user"
+    },
+    {
+      "key": "password",
+      "value": "StrongPassword123!"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Signup",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/signup",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "signup"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.collectionVariables.set('accessToken', body.tokens.access_token);",
+              "pm.collectionVariables.set('refreshToken', body.tokens.refresh_token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login (username/email)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.collectionVariables.set('accessToken', body.tokens.access_token);",
+              "pm.collectionVariables.set('refreshToken', body.tokens.refresh_token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Me",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.expect(body).to.have.property('email');",
+              "pm.expect(body).to.have.property('username');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Refresh",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/refresh",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "refresh"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var body = pm.response.json();",
+              "pm.collectionVariables.set('accessToken', body.tokens.access_token);",
+              "pm.collectionVariables.set('refreshToken', body.tokens.refresh_token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

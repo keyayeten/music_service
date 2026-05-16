@@ -15,6 +15,10 @@ class Settings:
     db_pool_timeout: int
     redis_key_prefix: str
     redis_ttl_seconds: int
+    jwt_secret: str
+    jwt_algorithm: str
+    jwt_access_ttl_minutes: int
+    jwt_refresh_ttl_minutes: int
 
 
 def _get_bool(name: str, default: bool) -> bool:
@@ -50,4 +54,8 @@ def get_settings() -> Settings:
         db_pool_timeout=_get_int("DB_POOL_TIMEOUT", 30),
         redis_key_prefix=os.getenv("REDIS_KEY_PREFIX", "music_service"),
         redis_ttl_seconds=_get_int("REDIS_TTL_SECONDS", 60),
+        jwt_secret=os.getenv("JWT_SECRET", "change-me-in-production"),
+        jwt_algorithm=os.getenv("JWT_ALGORITHM", "HS256"),
+        jwt_access_ttl_minutes=_get_int("JWT_ACCESS_TTL_MINUTES", 15),
+        jwt_refresh_ttl_minutes=_get_int("JWT_REFRESH_TTL_MINUTES", 43200),
     )

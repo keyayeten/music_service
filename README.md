@@ -112,7 +112,26 @@ make infra-down
   - `REDIS_URL` -> `redis://redis:6379/0`.
 - Дополнительные настройки:
   - `DB_ECHO`, `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT`;
-  - `REDIS_KEY_PREFIX`, `REDIS_TTL_SECONDS`.
+  - `REDIS_KEY_PREFIX`, `REDIS_TTL_SECONDS`;
+  - `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_ACCESS_TTL_MINUTES`, `JWT_REFRESH_TTL_MINUTES`.
+
+## Identity/Auth API (Stage 1)
+
+Доступные endpoints:
+
+- `POST /api/v1/auth/signup` — регистрация по `email + username + password`.
+- `POST /api/v1/auth/login` — вход по `login` (`username` или `email`) и `password`.
+- `POST /api/v1/auth/refresh` — обновление токенов по refresh token.
+- `GET /api/v1/auth/me` — профиль текущего пользователя по access token.
+
+Быстрый smoke-сценарий:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/auth/signup -H "Content-Type: application/json" -d "{\"email\":\"user@example.com\",\"username\":\"user1\",\"password\":\"StrongPassword123!\"}"
+curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -d "{\"login\":\"user1\",\"password\":\"StrongPassword123!\"}"
+```
+
+Для ручного тестирования добавлена Postman-коллекция: `postman/stage1-identity-auth.postman_collection.json`.
 
 ## Полезные команды
 
@@ -151,3 +170,4 @@ make infra-down
 - `infra/docker/` — `Dockerfile` и `docker-compose.yml`.
 - `alembic/` и `alembic.ini` — миграции базы данных.
 - `docs/` — документация и диаграммы (включая `docs/backend-architecture.md`, `docs/testing-strategy.md`, `docs/implementation-plan.md`, `docs/implementation-issues-checklist.md`).
+- `postman/` — коллекции Postman для ручного тестирования API.

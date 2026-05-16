@@ -1,0 +1,77 @@
+from __future__ import annotations
+
+from uuid import UUID
+
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session
+
+from backend.domain.identity.repositories import IdentityAuthRepository, IdentityUserAuthModel, IdentityUserReadModel
+from backend.infrastructure.persistence.models.identity import Role, User, UserRole
+from backend.infrastructure.persistence.seeds.identity_roles import seed_identity_roles
+
+
+class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get_user_by_id(self, user_id: UUID) -> IdentityUserReadModel | None:
+        user = self._session.get(User, user_id)
+        return _to_read_model(user) if user else None
+
+    def get_user_auth_by_login(self, login: str) -> IdentityUserAuthModel | None:
+        query = select(User).where(or_(User.username == login, User.email == login))
+        user = self._session.execute(query).scalar_one_or_none()
+        if user is None:
+            return None
+        return IdentityUserAuthModel(
+            id=user.id,
+            email=user.email,
+            username=user.username,
+            password_hash=user.password_hash,
+            status=user.status,
+        )
+
+    def create_user(self, email: str, username: str, password_hash: str, status: str = "active") -> IdentityUserReadModel:
+        user = User(email=email, username=username, password_hash=password_hash, status=status)
+        self._session.add(user)
+        self._session.flush()
+        return _to_read_model(user)
+
+    def get_user_by_email(self, email: str) -> IdentityUserReadModel | None:
+        user = self._session.execute(select(User).where(User.email == email)).scalar_one_or_none()
+        return _to_read_model(user) if user else None
+
+    def get_user_by_username(self, username: str) -> IdentityUserReadModel | None:
+        user = self._session.execute(select(User).where(User.username == username)).scalar_one_or_none()
+        return _to_read_model(user) if user else None
+
+    def ensure_roles_seeded(self) -> None:
+        seed_identity_roles(self._session)
+        self._session.flush()
+
+    def get_role_id_by_code(self, code: str) -> int | None:
+        return self._session.execute(select(Role.id).where(Role.code == code)).scalar_one_or_none()
+
+    def assign_role(self, user_id: UUID, role_id: int) -> None:
+        user_role = self._session.get(UserRole, {"user_id": user_id, "role_id": role_id})
+        if user_role is None:
+            self._session.add(UserRole(user_id=user_id, role_id=role_id))
+            self._session.flush()
+
+    def get_user_role_codes(self, user_id: UUID) -> list[str]:
+        query = (
+            select(Role.code)
+            .join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == user_id)
+            .order_by(Role.code.asc())
+        )
+        return list(self._session.execute(query).scalars())
+
+
+def _to_read_model(user: User) -> IdentityUserReadModel:
+    return IdentityUserReadModel(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        status=user.status,
+    )

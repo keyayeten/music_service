@@ -9,6 +9,7 @@ from backend.config.settings import get_settings
 from backend.infrastructure.persistence.models import Base
 
 # Import models so metadata includes all tables.
+from backend.infrastructure.persistence.models import identity  # noqa: F401
 from backend.infrastructure.persistence.models import service_heartbeat  # noqa: F401
 
 config = context.config

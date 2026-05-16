@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from backend.api.system.router import router as system_router
 from backend.api.v1.router import router as api_v1_router
@@ -30,6 +32,18 @@ def create_app() -> FastAPI:
     application = FastAPI(title=settings.app_name, lifespan=lifespan)
     application.include_router(system_router)
     application.include_router(api_v1_router)
+
+    @application.exception_handler(RequestValidationError)
+    async def _validation_exception_handler(_, exc: RequestValidationError) -> JSONResponse:
+        details = [
+            {"field": ".".join(str(part) for part in err["loc"]), "message": err["msg"]}
+            for err in exc.errors()
+        ]
+        return JSONResponse(
+            status_code=422,
+            content={"code": "validation_error", "message": "Request validation failed.", "details": details},
+        )
+
     return application
 
 
