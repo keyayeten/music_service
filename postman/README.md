@@ -1,6 +1,6 @@
 # Postman collections
 
-`stage1-identity-auth.postman_collection.json` содержит ручной сценарий Stage 1 + Stage 2 + Stage 3 + Stage 4 + Stage 5 + Stage 6 + Stage 7:
+`stage1-identity-auth.postman_collection.json` содержит ручной сценарий Stage 1 + Stage 2 + Stage 3 + Stage 4 + Stage 5 + Stage 6 + Stage 7 + Stage 8:
 
 1. `Signup`
 2. `Login (username/email)`
@@ -44,6 +44,10 @@
 40. `Get Report By Id As Moderator`
 41. `Set Report Status In Review`
 42. `Set Report Status Resolved`
+43. `List Public Albums (Cache Warmup)`
+44. `List Public Albums (Cache Hit Expectation)`
+45. `List Public Playlists (Cache Warmup)`
+46. `List Public Playlists (Cache Hit Expectation)`
 
 Перед запуском:
 
@@ -70,3 +74,7 @@
 - `Create Report` использует `target_id = {{trackId}}`, поэтому `trackId` должен ссылаться на существующий трек.
 - `List Reports As User (Forbidden)` должен вернуть `403` и подтвердить RBAC-ограничение.
 - `Set Report Status In Review` и `Set Report Status Resolved` запускай строго по порядку для проверки lifecycle `open -> in_review -> resolved`.
+- Stage 8 cache smoke:
+  - сначала запусти `List Public Albums (Cache Warmup)`, затем `List Public Albums (Cache Hit Expectation)`;
+  - сначала запусти `List Public Playlists (Cache Warmup)`, затем `List Public Playlists (Cache Hit Expectation)`;
+  - ожидаемый результат: оба запроса возвращают `200`, второй запрос выполняется как проверка cache hit.

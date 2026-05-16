@@ -3,6 +3,8 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import text
 
+from backend.config.settings import get_settings
+
 
 def _seed_catalog_read_data(db_session) -> dict[str, str]:
     user_id = str(uuid4())
@@ -112,6 +114,13 @@ def _seed_catalog_read_data(db_session) -> dict[str, str]:
     }
 
 
+def _clear_cache_namespace(redis_client, namespace: str) -> None:
+    prefix = get_settings().redis_key_prefix
+    pattern = f"{prefix}:http:{namespace}:*"
+    for key in redis_client.scan_iter(match=pattern):
+        redis_client.delete(key)
+
+
 @pytest.mark.api
 def test_anonymous_catalog_list_returns_only_published_entities(client, db_session, redis_client) -> None:
     seeded = _seed_catalog_read_data(db_session)
@@ -147,3 +156,45 @@ def test_anonymous_track_detail_rejects_unpublished_track(client, db_session, re
     response = client.get(f"/api/v1/catalog/tracks/{seeded['draft_track_id']}")
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "not_found"
+
+
+@pytest.mark.api
+def test_catalog_albums_list_uses_cache_with_ttl_staleness(client, db_session, redis_client) -> None:
+    _clear_cache_namespace(redis_client, "catalog:albums:list")
+    seeded = _seed_catalog_read_data(db_session)
+
+    first_response = client.get("/api/v1/catalog/albums")
+    assert first_response.status_code == 200
+    first_titles = {item["id"]: item["title"] for item in first_response.json()["items"]}
+    assert first_titles[seeded["published_album_id"]] == "Public Album"
+
+    db_session.execute(
+        text("UPDATE albums SET title = :title WHERE id = :album_id"),
+        {"title": "Public Album Updated", "album_id": seeded["published_album_id"]},
+    )
+    db_session.commit()
+
+    second_response = client.get("/api/v1/catalog/albums")
+    assert second_response.status_code == 200
+    second_titles = {item["id"]: item["title"] for item in second_response.json()["items"]}
+    assert second_titles[seeded["published_album_id"]] == "Public Album"
+
+
+@pytest.mark.api
+def test_catalog_album_detail_uses_cache_with_ttl_staleness(client, db_session, redis_client) -> None:
+    _clear_cache_namespace(redis_client, "catalog:albums:get")
+    seeded = _seed_catalog_read_data(db_session)
+
+    first_response = client.get(f"/api/v1/catalog/albums/{seeded['published_album_id']}")
+    assert first_response.status_code == 200
+    assert first_response.json()["title"] == "Public Album"
+
+    db_session.execute(
+        text("UPDATE albums SET title = :title WHERE id = :album_id"),
+        {"title": "Public Album Updated", "album_id": seeded["published_album_id"]},
+    )
+    db_session.commit()
+
+    second_response = client.get(f"/api/v1/catalog/albums/{seeded['published_album_id']}")
+    assert second_response.status_code == 200
+    assert second_response.json()["title"] == "Public Album"

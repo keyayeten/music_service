@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.api.deps import (
+    get_api_response_cache,
     get_current_identity_user,
     get_db_session,
     get_discovery_use_cases,
@@ -30,6 +31,7 @@ from backend.application.discovery.use_cases.events_and_recommendations import D
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
 from backend.domain.identity.repositories import IdentityUserReadModel
 from backend.domain.library.repositories import LibraryItemReadModel, PlaylistReadModel
+from backend.infrastructure.cache.response_cache import ApiResponseCache
 
 router = APIRouter(prefix="/library", tags=["library"])
 
@@ -215,24 +217,50 @@ def list_public_playlists(
     limit: int = Query(default=20),
     offset: int = Query(default=0),
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
+    response_cache: ApiResponseCache = Depends(get_api_response_cache),
 ) -> ListPlaylistsResponse:
+    cache_key = response_cache.build_key(
+        "library:playlists:public:list",
+        limit=limit,
+        offset=offset,
+    )
+    cached_payload = response_cache.get_json(cache_key)
+    if cached_payload is not None:
+        return ListPlaylistsResponse.model_validate(cached_payload)
     try:
         items = use_cases.list_public_playlists(limit=limit, offset=offset)
     except ValidationError as exc:
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
-    return ListPlaylistsResponse(items=[_to_playlist_response(item) for item in items])
+    response = ListPlaylistsResponse(items=[_to_playlist_response(item) for item in items])
+    response_cache.set_json(
+        key=cache_key,
+        payload=response.model_dump(mode="json"),
+        ttl_seconds=response_cache.ttl_for_public_playlist_reads(),
+    )
+    return response
 
 
 @router.get("/playlists/public/{playlist_id}", response_model=PlaylistResponse)
 def get_public_playlist(
     playlist_id: UUID,
     use_cases: LibraryPlaylistUseCases = Depends(get_library_playlist_use_cases),
+    response_cache: ApiResponseCache = Depends(get_api_response_cache),
 ) -> PlaylistResponse:
+    cache_key = response_cache.build_key("library:playlists:public:get", playlist_id=playlist_id)
+    cached_payload = response_cache.get_json(cache_key)
+    if cached_payload is not None:
+        return PlaylistResponse.model_validate(cached_payload)
     try:
         item = use_cases.get_public_playlist(playlist_id)
     except ValidationError as exc:
         raise _http_error(status.HTTP_404_NOT_FOUND, "not_found", exc.message) from exc
-    return _to_playlist_response(item)
+    response = _to_playlist_response(item)
+    response_cache.set_json(
+        key=cache_key,
+        payload=response.model_dump(mode="json"),
+        ttl_seconds=response_cache.ttl_for_public_playlist_reads(),
+    )
+    return response
 
 
 @router.post("/items", response_model=LibraryItemResponse, status_code=status.HTTP_201_CREATED)

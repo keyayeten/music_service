@@ -1,9 +1,9 @@
 {
   "info": {
     "_postman_id": "e2c24a77-0d18-45eb-a08c-bef336f95851",
-    "name": "music_service Stage 1-7 Identity/Auth+Profiles+Catalog+Library+Social+Discovery+Moderation",
+    "name": "music_service Stage 1-8 Identity/Auth+Profiles+Catalog+Library+Social+Discovery+Moderation+Hardening",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Stage 1-7 manual checks for signup/login/refresh/me, profile management, catalog write/read, library, social, discovery and reports/moderation endpoints."
+    "description": "Stage 1-8 manual checks for signup/login/refresh/me, profile management, catalog write/read, library, social, discovery, reports/moderation and Stage 8 cache smoke endpoints."
   },
   "variable": [
     {
@@ -1901,6 +1901,168 @@
               "});",
               "var body = pm.response.json();",
               "pm.expect(body.status).to.eql('resolved');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Public Albums (Cache Warmup)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/albums?status=published",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "albums"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "published"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Public Albums (Cache Hit Expectation)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/catalog/albums?status=published",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "catalog",
+            "albums"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "published"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Public Playlists (Cache Warmup)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/playlists/public?limit=20&offset=0",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "playlists",
+            "public"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Public Playlists (Cache Hit Expectation)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/library/playlists/public?limit=20&offset=0",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "library",
+            "playlists",
+            "public"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
             ],
             "type": "text/javascript"
           }

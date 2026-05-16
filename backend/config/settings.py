@@ -15,6 +15,8 @@ class Settings:
     db_pool_timeout: int
     redis_key_prefix: str
     redis_ttl_seconds: int
+    redis_ttl_catalog_reads_seconds: int
+    redis_ttl_public_playlist_reads_seconds: int
     jwt_secret: str
     jwt_algorithm: str
     jwt_access_ttl_minutes: int
@@ -54,6 +56,14 @@ def get_settings() -> Settings:
         db_pool_timeout=_get_int("DB_POOL_TIMEOUT", 30),
         redis_key_prefix=os.getenv("REDIS_KEY_PREFIX", "music_service"),
         redis_ttl_seconds=_get_int("REDIS_TTL_SECONDS", 60),
+        redis_ttl_catalog_reads_seconds=_get_int(
+            "REDIS_TTL_CATALOG_READS_SECONDS",
+            _get_int("REDIS_TTL_SECONDS", 60),
+        ),
+        redis_ttl_public_playlist_reads_seconds=_get_int(
+            "REDIS_TTL_PUBLIC_PLAYLIST_READS_SECONDS",
+            _get_int("REDIS_TTL_SECONDS", 60),
+        ),
         jwt_secret=os.getenv("JWT_SECRET", "change-me-in-production"),
         jwt_algorithm=os.getenv("JWT_ALGORITHM", "HS256"),
         jwt_access_ttl_minutes=_get_int("JWT_ACCESS_TTL_MINUTES", 15),

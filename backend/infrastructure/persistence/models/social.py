@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Text, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Text, UniqueConstraint, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.infrastructure.persistence.models.base import Base
@@ -18,6 +18,13 @@ class Comment(Base):
         CheckConstraint(f"target_type IN {SOCIAL_TARGET_TYPES}", name="ck_comments_target_type"),
         CheckConstraint(f"status IN {COMMENT_STATUSES}", name="ck_comments_status"),
         Index("ix_comments_target_created", "target_type", "target_id", "created_at"),
+        Index(
+            "ix_comments_visible_target_created",
+            "target_type",
+            "target_id",
+            "created_at",
+            postgresql_where=text("status = 'visible'"),
+        ),
         Index("ix_comments_user_created", "user_id", "created_at"),
         Index("ix_comments_parent", "parent_comment_id"),
     )

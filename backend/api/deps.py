@@ -23,6 +23,7 @@ from backend.infrastructure.persistence.repositories.identity_auth import SqlAlc
 from backend.infrastructure.persistence.repositories.library import SqlAlchemyLibraryRepository
 from backend.infrastructure.persistence.repositories.moderation import SqlAlchemyModerationRepository
 from backend.infrastructure.persistence.repositories.social import SqlAlchemySocialRepository
+from backend.infrastructure.cache.response_cache import ApiResponseCache
 from backend.infrastructure.cache.redis_client import get_redis_client
 from backend.infrastructure.persistence.database import get_session
 
@@ -37,6 +38,10 @@ def get_app_settings() -> Settings:
 
 def get_cache_client() -> Redis:
     return get_redis_client()
+
+
+def get_api_response_cache(cache_client: Redis = Depends(get_cache_client)) -> ApiResponseCache:
+    return ApiResponseCache(redis_client=cache_client, settings=get_settings())
 
 
 def get_identity_auth_use_cases(db_session: Session = Depends(get_db_session)) -> IdentityAuthUseCases:

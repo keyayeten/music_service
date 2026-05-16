@@ -5,7 +5,7 @@ COMPOSE_FILE ?= infra/docker/docker-compose.yml
 COMPOSE_PROJECT_NAME ?= music_service
 COMPOSE ?= docker compose -p $(COMPOSE_PROJECT_NAME) -f $(COMPOSE_FILE) --env-file .env
 
-.PHONY: init-env install run-native infra-up infra-down infra-logs up down logs ps migrate migrate-docker test test-unit test-integration test-api smoke-health wait-infra migrate-clean pre-merge
+.PHONY: init-env install run-native infra-up infra-down infra-logs up down logs ps migrate migrate-docker test test-unit test-integration test-api test-e2e smoke-health wait-infra migrate-clean pre-merge
 
 init-env:
 	@$(PYTHON) -c "from pathlib import Path; src=Path('.env.example'); dst=Path('.env'); exists=dst.exists(); dst.write_text(src.read_text(), encoding='utf-8') if (src.exists() and not exists) else None; print('.env created from .env.example' if (src.exists() and not exists) else '.env already exists')"
@@ -55,6 +55,9 @@ test-integration: init-env
 
 test-api: init-env
 	$(PYTHON) -m pytest -m api
+
+test-e2e: init-env
+	$(PYTHON) -m pytest -m e2e
 
 smoke-health: init-env
 	$(PYTHON) scripts/smoke_health.py

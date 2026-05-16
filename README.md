@@ -112,7 +112,7 @@ make infra-down
   - `REDIS_URL` -> `redis://redis:6379/0`.
 - Дополнительные настройки:
   - `DB_ECHO`, `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT`;
-  - `REDIS_KEY_PREFIX`, `REDIS_TTL_SECONDS`;
+  - `REDIS_KEY_PREFIX`, `REDIS_TTL_SECONDS`, `REDIS_TTL_CATALOG_READS_SECONDS`, `REDIS_TTL_PUBLIC_PLAYLIST_READS_SECONDS`;
   - `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_ACCESS_TTL_MINUTES`, `JWT_REFRESH_TTL_MINUTES`.
 
 ## Identity/Auth API (Stage 1)
@@ -131,7 +131,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/auth/signup -H "Content-Type: applicat
 curl -X POST http://127.0.0.1:8000/api/v1/auth/login -H "Content-Type: application/json" -d "{\"login\":\"user1\",\"password\":\"StrongPassword123!\"}"
 ```
 
-Для ручного тестирования добавлена Postman-коллекция: `postman/stage1-identity-auth.postman_collection.json` (Stage 1-7).
+Для ручного тестирования добавлена Postman-коллекция: `postman/stage1-identity-auth.postman_collection.json` (Stage 1-8).
 
 ## Catalog API (Stage 3)
 
@@ -241,7 +241,9 @@ RBAC правило Stage 7 для write-каталога:
 - `make test-unit` — запустить только unit-тесты.
 - `make test-integration` — запустить только integration-тесты.
 - `make test-api` — запустить только api-тесты.
+- `make test-e2e` — запустить только e2e-сценарии.
 - `make pre-merge` — локальный quality gate (чистая БД + миграции + тесты + smoke health-check).
+- Релизный чеклист Stage 8: `docs/release-checklist.md`.
 
 ## Troubleshooting
 

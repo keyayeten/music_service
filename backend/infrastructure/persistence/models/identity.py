@@ -22,6 +22,9 @@ from backend.infrastructure.persistence.models.base import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_users_status_created_at", "status", "created_at"),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
@@ -61,6 +64,12 @@ class ComposerProfile(Base):
     __table_args__ = (
         UniqueConstraint("user_id", name="uq_composer_profiles_user_id"),
         Index("ix_composer_profiles_verified", "verified"),
+        Index(
+            "ix_composer_profiles_display_name_trgm",
+            "display_name",
+            postgresql_using="gin",
+            postgresql_ops={"display_name": "gin_trgm_ops"},
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)

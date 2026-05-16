@@ -3,6 +3,8 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import text
 
+from backend.config.settings import get_settings
+
 
 def _signup(client) -> dict:
     marker = uuid4().hex[:10]
@@ -49,6 +51,13 @@ def _create_track(client, access_token: str) -> str:
     )
     assert response.status_code == 201
     return response.json()["id"]
+
+
+def _clear_cache_namespace(redis_client, namespace: str) -> None:
+    prefix = get_settings().redis_key_prefix
+    pattern = f"{prefix}:http:{namespace}:*"
+    for key in redis_client.scan_iter(match=pattern):
+        redis_client.delete(key)
 
 
 @pytest.mark.api
@@ -179,3 +188,45 @@ def test_library_items_crud_and_duplicate_conflict(client, db_session, redis_cli
     )
     assert list_after_delete.status_code == 200
     assert list_after_delete.json()["items"] == []
+
+
+@pytest.mark.api
+def test_public_playlist_read_endpoints_use_cache_with_ttl_staleness(client, db_session, redis_client) -> None:
+    _clear_cache_namespace(redis_client, "library:playlists:public:list")
+    _clear_cache_namespace(redis_client, "library:playlists:public:get")
+
+    signup_payload = _signup(client)
+    access_token = signup_payload["tokens"]["access_token"]
+
+    create_response = client.post(
+        "/api/v1/library/playlists",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"title": "Cached Playlist", "description": "Before update", "visibility": "public"},
+    )
+    assert create_response.status_code == 201
+    playlist_id = create_response.json()["id"]
+
+    first_list_response = client.get("/api/v1/library/playlists/public")
+    assert first_list_response.status_code == 200
+    first_list_titles = {item["id"]: item["title"] for item in first_list_response.json()["items"]}
+    assert first_list_titles[playlist_id] == "Cached Playlist"
+
+    first_detail_response = client.get(f"/api/v1/library/playlists/public/{playlist_id}")
+    assert first_detail_response.status_code == 200
+    assert first_detail_response.json()["description"] == "Before update"
+
+    update_response = client.patch(
+        f"/api/v1/library/playlists/{playlist_id}",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"title": "Updated Playlist", "description": "After update", "visibility": "public"},
+    )
+    assert update_response.status_code == 200
+
+    second_list_response = client.get("/api/v1/library/playlists/public")
+    assert second_list_response.status_code == 200
+    second_list_titles = {item["id"]: item["title"] for item in second_list_response.json()["items"]}
+    assert second_list_titles[playlist_id] == "Cached Playlist"
+
+    second_detail_response = client.get(f"/api/v1/library/playlists/public/{playlist_id}")
+    assert second_detail_response.status_code == 200
+    assert second_detail_response.json()["description"] == "Before update"

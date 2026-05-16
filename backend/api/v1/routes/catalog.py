@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.api.deps import (
+    get_api_response_cache,
     get_catalog_album_use_cases,
     get_catalog_track_use_cases,
     get_current_identity_user,
@@ -36,6 +37,7 @@ from backend.application.discovery.use_cases.events_and_recommendations import D
 from backend.domain.catalog.repositories import AlbumReadModel, TrackReadModel
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
 from backend.domain.identity.repositories import IdentityUserReadModel
+from backend.infrastructure.cache.response_cache import ApiResponseCache
 
 router = APIRouter(prefix="/catalog", tags=["catalog"])
 
@@ -390,7 +392,16 @@ def list_albums(
     status_filter: str | None = Query(default=None, alias="status"),
     owner_composer_id: UUID | None = Query(default=None),
     use_cases: CatalogAlbumUseCases = Depends(get_catalog_album_use_cases),
+    response_cache: ApiResponseCache = Depends(get_api_response_cache),
 ) -> ListAlbumsResponse:
+    cache_key = response_cache.build_key(
+        "catalog:albums:list",
+        status=status_filter,
+        owner_composer_id=owner_composer_id,
+    )
+    cached_payload = response_cache.get_json(cache_key)
+    if cached_payload is not None:
+        return ListAlbumsResponse.model_validate(cached_payload)
     try:
         items = use_cases.list_albums(
             status=status_filter,
@@ -399,16 +410,36 @@ def list_albums(
         )
     except ValidationError as exc:
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
-    return ListAlbumsResponse(items=[_to_album_response(item) for item in items])
+    response = ListAlbumsResponse(items=[_to_album_response(item) for item in items])
+    response_cache.set_json(
+        key=cache_key,
+        payload=response.model_dump(mode="json"),
+        ttl_seconds=response_cache.ttl_for_catalog_reads(),
+    )
+    return response
 
 
 @router.get("/albums/{album_id}", response_model=AlbumResponse)
-def get_album(album_id: UUID, use_cases: CatalogAlbumUseCases = Depends(get_catalog_album_use_cases)) -> AlbumResponse:
+def get_album(
+    album_id: UUID,
+    use_cases: CatalogAlbumUseCases = Depends(get_catalog_album_use_cases),
+    response_cache: ApiResponseCache = Depends(get_api_response_cache),
+) -> AlbumResponse:
+    cache_key = response_cache.build_key("catalog:albums:get", album_id=album_id)
+    cached_payload = response_cache.get_json(cache_key)
+    if cached_payload is not None:
+        return AlbumResponse.model_validate(cached_payload)
     try:
         item = use_cases.get_album(album_id, include_unpublished=False)
     except ValidationError as exc:
         raise _http_error(status.HTTP_404_NOT_FOUND, "not_found", exc.message) from exc
-    return _to_album_response(item)
+    response = _to_album_response(item)
+    response_cache.set_json(
+        key=cache_key,
+        payload=response.model_dump(mode="json"),
+        ttl_seconds=response_cache.ttl_for_catalog_reads(),
+    )
+    return response
 
 
 def _to_track_response(track: TrackReadModel) -> TrackResponse:

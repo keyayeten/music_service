@@ -30,6 +30,7 @@ class Playlist(Base):
         CheckConstraint(f"visibility IN {PLAYLIST_VISIBILITIES}", name="ck_playlists_visibility"),
         Index("ix_playlists_owner_created", "owner_user_id", "created_at"),
         Index("ix_playlists_visibility_likes", "visibility", "likes_count"),
+        Index("ix_playlists_visibility_created", "visibility", "created_at"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)

@@ -44,6 +44,12 @@ class Track(Base):
         Index("ix_tracks_status_published_at", "status", "published_at"),
         Index("ix_tracks_likes_count", "likes_count"),
         Index("ix_tracks_plays_count", "plays_count"),
+        Index(
+            "ix_tracks_title_trgm",
+            "title",
+            postgresql_using="gin",
+            postgresql_ops={"title": "gin_trgm_ops"},
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
