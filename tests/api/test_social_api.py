@@ -17,7 +17,9 @@ def _signup(client) -> dict:
 
 
 def _grant_role(db_session, user_id: str, role_code: str) -> None:
-    role_id = db_session.execute(text("SELECT id FROM roles WHERE code = :code"), {"code": role_code}).scalar_one()
+    role_id = db_session.execute(
+        text("SELECT id FROM roles WHERE code = :code"), {"code": role_code}
+    ).scalar_one()
     db_session.execute(
         text(
             """
@@ -45,7 +47,11 @@ def _create_and_publish_track(client, access_token: str) -> str:
     create_response = client.post(
         "/api/v1/catalog/tracks",
         headers={"Authorization": f"Bearer {access_token}"},
-        json={"title": "Stage5 Track", "description": "Track for social tests", "duration_seconds": 220},
+        json={
+            "title": "Stage5 Track",
+            "description": "Track for social tests",
+            "duration_seconds": 220,
+        },
     )
     assert create_response.status_code == 201
     track_id = create_response.json()["id"]
@@ -68,9 +74,13 @@ def _create_playlist(client, access_token: str, *, visibility: str) -> str:
 
 
 @pytest.mark.api
-def test_like_and_unlike_track_are_idempotent_and_update_counters(client, db_session, redis_client) -> None:
+def test_like_and_unlike_track_are_idempotent_and_update_counters(
+    client, db_session, redis_client
+) -> None:
     owner = _signup(client)
-    _ensure_composer_profile(client, db_session, owner["user"]["id"], owner["tokens"]["access_token"])
+    _ensure_composer_profile(
+        client, db_session, owner["user"]["id"], owner["tokens"]["access_token"]
+    )
     track_id = _create_and_publish_track(client, owner["tokens"]["access_token"])
 
     listener = _signup(client)
@@ -126,7 +136,9 @@ def test_like_and_unlike_track_are_idempotent_and_update_counters(client, db_ses
 @pytest.mark.api
 def test_comment_and_reply_update_track_counters(client, db_session, redis_client) -> None:
     owner = _signup(client)
-    _ensure_composer_profile(client, db_session, owner["user"]["id"], owner["tokens"]["access_token"])
+    _ensure_composer_profile(
+        client, db_session, owner["user"]["id"], owner["tokens"]["access_token"]
+    )
     track_id = _create_and_publish_track(client, owner["tokens"]["access_token"])
 
     listener = _signup(client)
@@ -175,7 +187,9 @@ def test_comment_and_reply_update_track_counters(client, db_session, redis_clien
 @pytest.mark.api
 def test_reply_rejects_parent_from_other_target(client, db_session, redis_client) -> None:
     owner = _signup(client)
-    _ensure_composer_profile(client, db_session, owner["user"]["id"], owner["tokens"]["access_token"])
+    _ensure_composer_profile(
+        client, db_session, owner["user"]["id"], owner["tokens"]["access_token"]
+    )
     first_track_id = _create_and_publish_track(client, owner["tokens"]["access_token"])
     second_track_id = _create_and_publish_track(client, owner["tokens"]["access_token"])
 
@@ -200,7 +214,9 @@ def test_reply_rejects_parent_from_other_target(client, db_session, redis_client
 
 
 @pytest.mark.api
-def test_unlisted_playlist_comment_is_available_by_direct_link(client, db_session, redis_client) -> None:
+def test_unlisted_playlist_comment_is_available_by_direct_link(
+    client, db_session, redis_client
+) -> None:
     owner = _signup(client)
     owner_access = owner["tokens"]["access_token"]
     playlist_id = _create_playlist(client, owner_access, visibility="unlisted")

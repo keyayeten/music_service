@@ -13,11 +13,17 @@ from backend.infrastructure.persistence.models.catalog import (
     TrackGenre,
 )
 from backend.infrastructure.persistence.models.discovery import ExternalLinkClick, UserTrackEvent
-from backend.infrastructure.persistence.models.identity import ComposerProfile, Role, User, UserRole, UserRoleProfile
+from backend.infrastructure.persistence.models.identity import (
+    ComposerProfile,
+    Role,
+    User,
+    UserRole,
+    UserRoleProfile,
+)
 from backend.infrastructure.persistence.models.library import LibraryItem, Playlist, PlaylistTrack
 from backend.infrastructure.persistence.models.moderation import ModerationAction, Report
-from backend.infrastructure.persistence.models.social import Comment, Like
 from backend.infrastructure.persistence.models.service_heartbeat import ServiceHeartbeat
+from backend.infrastructure.persistence.models.social import Comment, Like
 
 __all__ = [
     "Base",

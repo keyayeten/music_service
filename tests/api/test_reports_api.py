@@ -17,7 +17,9 @@ def _signup(client) -> dict:
 
 
 def _grant_role(db_session, user_id: str, role_code: str) -> None:
-    role_id = db_session.execute(text("SELECT id FROM roles WHERE code = :code"), {"code": role_code}).scalar_one()
+    role_id = db_session.execute(
+        text("SELECT id FROM roles WHERE code = :code"), {"code": role_code}
+    ).scalar_one()
     db_session.execute(
         text(
             """

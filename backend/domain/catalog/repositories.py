@@ -91,10 +91,14 @@ class CatalogRepository(Protocol):
     ) -> TrackReadModel | None:
         """Update mutable track fields."""
 
-    async def replace_track_authors(self, track_id: UUID, authors: list[TrackAuthorReadModel]) -> None:
+    async def replace_track_authors(
+        self, track_id: UUID, authors: list[TrackAuthorReadModel]
+    ) -> None:
         """Replace all track author records."""
 
-    async def set_track_status(self, track_id: UUID, status: str, published_at: datetime | None) -> TrackReadModel | None:
+    async def set_track_status(
+        self, track_id: UUID, status: str, published_at: datetime | None
+    ) -> TrackReadModel | None:
         """Set status and publication timestamp."""
 
     async def get_track_by_id(self, track_id: UUID) -> TrackReadModel | None:

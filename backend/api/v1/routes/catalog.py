@@ -11,8 +11,8 @@ from backend.api.deps import (
     get_catalog_album_use_cases,
     get_catalog_track_use_cases,
     get_current_identity_user,
-    get_discovery_use_cases,
     get_db_session,
+    get_discovery_use_cases,
     get_optional_identity_user,
     get_user_roles,
 )
@@ -65,7 +65,9 @@ async def create_track(
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     except IntegrityError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", "Track constraints violated.") from exc
+        raise _http_error(
+            status.HTTP_409_CONFLICT, "conflict_error", "Track constraints violated."
+        ) from exc
     return _to_track_response(result)
 
 
@@ -112,7 +114,11 @@ async def replace_track_authors(
         await db_session.commit()
     except ValueError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", "Author ids should be valid UUID values.") from exc
+        raise _http_error(
+            status.HTTP_400_BAD_REQUEST,
+            "validation_error",
+            "Author ids should be valid UUID values.",
+        ) from exc
     except ValidationError as exc:
         await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
@@ -170,7 +176,9 @@ async def moderate_track(
 ) -> TrackResponse:
     try:
         roles = await get_user_roles(db_session, str(user.id))
-        result = await use_cases.moderate_track(roles, track_id=track_id, target_status=payload.target_status)
+        result = await use_cases.moderate_track(
+            roles, track_id=track_id, target_status=payload.target_status
+        )
         await db_session.commit()
     except ValidationError as exc:
         await db_session.rollback()
@@ -315,7 +323,11 @@ async def replace_album_tracks(
         await db_session.commit()
     except ValueError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", "Track ids should be valid UUID values.") from exc
+        raise _http_error(
+            status.HTTP_400_BAD_REQUEST,
+            "validation_error",
+            "Track ids should be valid UUID values.",
+        ) from exc
     except ValidationError as exc:
         await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
@@ -324,7 +336,9 @@ async def replace_album_tracks(
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     except IntegrityError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", "Album track constraints violated.") from exc
+        raise _http_error(
+            status.HTTP_409_CONFLICT, "conflict_error", "Album track constraints violated."
+        ) from exc
     return _to_album_response(result)
 
 
@@ -376,7 +390,9 @@ async def moderate_album(
 ) -> AlbumResponse:
     try:
         roles = await get_user_roles(db_session, str(user.id))
-        result = await use_cases.moderate_album(roles, album_id=album_id, target_status=payload.target_status)
+        result = await use_cases.moderate_album(
+            roles, album_id=album_id, target_status=payload.target_status
+        )
         await db_session.commit()
     except ValidationError as exc:
         await db_session.rollback()
@@ -477,7 +493,10 @@ def _to_album_response(album: AlbumReadModel) -> AlbumResponse:
         likes_count=album.likes_count,
         comments_count=album.comments_count,
         created_at=album.created_at,
-        track_items=[{"track_id": str(item.track_id), "position": item.position} for item in album.track_items],
+        track_items=[
+            {"track_id": str(item.track_id), "position": item.position}
+            for item in album.track_items
+        ],
     )
 
 

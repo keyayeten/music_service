@@ -4,9 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_current_identity_user, get_db_session, get_identity_profiles_use_cases
+from backend.api.deps import (
+    get_current_identity_user,
+    get_db_session,
+    get_identity_profiles_use_cases,
+)
 from backend.api.v1.schemas.profiles import MyProfileResponse, UpdateMyProfileRequest
-from backend.application.identity.use_cases.profiles import IdentityProfileResult, IdentityProfilesUseCases
+from backend.application.identity.use_cases.profiles import (
+    IdentityProfileResult,
+    IdentityProfilesUseCases,
+)
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
 from backend.domain.identity.repositories import IdentityUserReadModel
 
@@ -48,7 +55,9 @@ async def update_my_profile(
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     except IntegrityError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", "Profile constraints violated.") from exc
+        raise _http_error(
+            status.HTTP_409_CONFLICT, "conflict_error", "Profile constraints violated."
+        ) from exc
     return _to_response(profile)
 
 

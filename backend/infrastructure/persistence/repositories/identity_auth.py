@@ -11,7 +11,13 @@ from backend.domain.identity.repositories import (
     IdentityUserAuthModel,
     IdentityUserReadModel,
 )
-from backend.infrastructure.persistence.models.identity import ComposerProfile, Role, User, UserRole, UserRoleProfile
+from backend.infrastructure.persistence.models.identity import (
+    ComposerProfile,
+    Role,
+    User,
+    UserRole,
+    UserRoleProfile,
+)
 from backend.infrastructure.persistence.seeds.identity_roles import seed_identity_roles
 
 
@@ -36,18 +42,24 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
             status=user.status,
         )
 
-    async def create_user(self, email: str, username: str, password_hash: str, status: str = "active") -> IdentityUserReadModel:
+    async def create_user(
+        self, email: str, username: str, password_hash: str, status: str = "active"
+    ) -> IdentityUserReadModel:
         user = User(email=email, username=username, password_hash=password_hash, status=status)
         self._session.add(user)
         await self._session.flush()
         return _to_read_model(user)
 
     async def get_user_by_email(self, email: str) -> IdentityUserReadModel | None:
-        user = (await self._session.execute(select(User).where(User.email == email))).scalar_one_or_none()
+        user = (
+            await self._session.execute(select(User).where(User.email == email))
+        ).scalar_one_or_none()
         return _to_read_model(user) if user else None
 
     async def get_user_by_username(self, username: str) -> IdentityUserReadModel | None:
-        user = (await self._session.execute(select(User).where(User.username == username))).scalar_one_or_none()
+        user = (
+            await self._session.execute(select(User).where(User.username == username))
+        ).scalar_one_or_none()
         return _to_read_model(user) if user else None
 
     async def ensure_roles_seeded(self) -> None:
@@ -55,7 +67,9 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
         await self._session.flush()
 
     async def get_role_id_by_code(self, code: str) -> int | None:
-        return (await self._session.execute(select(Role.id).where(Role.code == code))).scalar_one_or_none()
+        return (
+            await self._session.execute(select(Role.id).where(Role.code == code))
+        ).scalar_one_or_none()
 
     async def assign_role(self, user_id: UUID, role_id: int) -> None:
         user_role = await self._session.get(UserRole, {"user_id": user_id, "role_id": role_id})
@@ -72,8 +86,14 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
         )
         return list((await self._session.execute(query)).scalars())
 
-    async def get_composer_profile_by_user_id(self, user_id: UUID) -> ComposerProfileReadModel | None:
-        profile = (await self._session.execute(select(ComposerProfile).where(ComposerProfile.user_id == user_id))).scalar_one_or_none()
+    async def get_composer_profile_by_user_id(
+        self, user_id: UUID
+    ) -> ComposerProfileReadModel | None:
+        profile = (
+            await self._session.execute(
+                select(ComposerProfile).where(ComposerProfile.user_id == user_id)
+            )
+        ).scalar_one_or_none()
         return _to_composer_profile_read_model(profile) if profile else None
 
     async def upsert_composer_profile(
@@ -84,7 +104,11 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
         bio: str | None,
         country_code: str | None,
     ) -> ComposerProfileReadModel:
-        profile = (await self._session.execute(select(ComposerProfile).where(ComposerProfile.user_id == user_id))).scalar_one_or_none()
+        profile = (
+            await self._session.execute(
+                select(ComposerProfile).where(ComposerProfile.user_id == user_id)
+            )
+        ).scalar_one_or_none()
         if profile is None:
             profile = ComposerProfile(
                 user_id=user_id,
@@ -111,13 +135,15 @@ class SqlAlchemyIdentityAuthRepository(IdentityAuthRepository):
         profile_type: str,
         profile_id: UUID,
     ) -> None:
-        role_profile = (await self._session.execute(
-            select(UserRoleProfile).where(
-                UserRoleProfile.user_id == user_id,
-                UserRoleProfile.role_id == role_id,
-                UserRoleProfile.profile_type == profile_type,
+        role_profile = (
+            await self._session.execute(
+                select(UserRoleProfile).where(
+                    UserRoleProfile.user_id == user_id,
+                    UserRoleProfile.role_id == role_id,
+                    UserRoleProfile.profile_type == profile_type,
+                )
             )
-        )).scalar_one_or_none()
+        ).scalar_one_or_none()
         if role_profile is None:
             self._session.add(
                 UserRoleProfile(

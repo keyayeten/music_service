@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-import random
 from typing import Any
 from uuid import UUID
 
@@ -12,10 +12,7 @@ from sqlalchemy.orm import Session
 
 from backend.application.identity.security import hash_password
 from backend.infrastructure.persistence.models.catalog import (
-    ALBUM_STATUSES,
-    ENTITY_TYPES,
     MUSIC_SERVICES,
-    TRACK_STATUSES,
     Album,
     AlbumTrack,
     EntityTag,
@@ -26,11 +23,28 @@ from backend.infrastructure.persistence.models.catalog import (
     TrackAuthor,
     TrackGenre,
 )
-from backend.infrastructure.persistence.models.discovery import TRACK_EVENT_TYPES, ExternalLinkClick, UserTrackEvent
-from backend.infrastructure.persistence.models.identity import ComposerProfile, Role, User, UserRole, UserRoleProfile
-from backend.infrastructure.persistence.models.library import LIBRARY_SECTIONS, PLAYLIST_VISIBILITIES, LibraryItem, Playlist, PlaylistTrack
-from backend.infrastructure.persistence.models.moderation import REPORT_STATUSES, ModerationAction, Report
-from backend.infrastructure.persistence.models.social import Comment, Like, SOCIAL_TARGET_TYPES
+from backend.infrastructure.persistence.models.discovery import (
+    TRACK_EVENT_TYPES,
+    ExternalLinkClick,
+    UserTrackEvent,
+)
+from backend.infrastructure.persistence.models.identity import (
+    ComposerProfile,
+    Role,
+    User,
+    UserRole,
+    UserRoleProfile,
+)
+from backend.infrastructure.persistence.models.library import (
+    LibraryItem,
+    Playlist,
+    PlaylistTrack,
+)
+from backend.infrastructure.persistence.models.moderation import (
+    ModerationAction,
+    Report,
+)
+from backend.infrastructure.persistence.models.social import Comment, Like
 from backend.infrastructure.persistence.seeds.identity_roles import seed_identity_roles
 
 GENRE_PAIRS: tuple[tuple[str, str], ...] = (
@@ -80,7 +94,9 @@ class FixtureSeedResult:
 def seed_fixtures(session: Session, options: FixtureSeedOptions) -> FixtureSeedResult:
     rng = random.Random()
     role_map = _seed_identity_phase(session, options.users, options.batch_size, rng)
-    catalog_state = _seed_catalog_phase(session, options.tracks, options.albums, options.batch_size, rng, role_map)
+    catalog_state = _seed_catalog_phase(
+        session, options.tracks, options.albums, options.batch_size, rng, role_map
+    )
     playlist_state = _seed_library_phase(
         session,
         options.playlists,
@@ -97,7 +113,9 @@ def seed_fixtures(session: Session, options: FixtureSeedOptions) -> FixtureSeedR
         catalog_state,
         playlist_state,
     )
-    discovery_events = _seed_discovery_phase(session, options.batch_size, rng, role_map["all_user_ids"], catalog_state)
+    discovery_events = _seed_discovery_phase(
+        session, options.batch_size, rng, role_map["all_user_ids"], catalog_state
+    )
     moderation_state = _seed_moderation_phase(
         session,
         options.batch_size,
@@ -145,12 +163,13 @@ def collect_fixture_stats(session: Session) -> dict[str, Any]:
     }
 
 
-def _seed_identity_phase(session: Session, users_count: int, batch_size: int, rng: random.Random) -> dict[str, list[UUID]]:
+def _seed_identity_phase(
+    session: Session, users_count: int, batch_size: int, rng: random.Random
+) -> dict[str, list[UUID]]:
     seed_identity_roles(session)
     session.flush()
     role_map = {
-        code: role_id
-        for code, role_id in session.execute(select(Role.code, Role.id)).all()
+        code: role_id for code, role_id in session.execute(select(Role.code, Role.id)).all()
     }
     required_roles = {"user", "composer", "moderator", "admin"}
     missing_roles = required_roles - set(role_map)
@@ -161,7 +180,9 @@ def _seed_identity_phase(session: Session, users_count: int, batch_size: int, rn
     user_payloads: list[dict[str, Any]] = []
     role_codes_by_index: list[list[str]] = []
     for index in range(users_count):
-        unique_tail = f"{datetime.now(tz=UTC).strftime('%Y%m%d%H%M%S')}{index:05d}{rng.randint(0, 9999):04d}"
+        unique_tail = (
+            f"{datetime.now(tz=UTC).strftime('%Y%m%d%H%M%S')}{index:05d}{rng.randint(0, 9999):04d}"
+        )
         status = _pick_weighted(rng, [("active", 0.92), ("blocked", 0.05), ("deleted", 0.03)])
         roles = ["user"]
         if index < max(1, users_count // 5):
@@ -202,7 +223,9 @@ def _seed_identity_phase(session: Session, users_count: int, batch_size: int, rn
                 composer_user_ids.append(user_id)
         session.flush()
 
-    _bulk_insert_with_conflict(session, UserRole, user_roles_rows, batch_size, ["user_id", "role_id"])
+    _bulk_insert_with_conflict(
+        session, UserRole, user_roles_rows, batch_size, ["user_id", "role_id"]
+    )
 
     profile_rows = []
     for composer_user_id in composer_user_ids:
@@ -211,7 +234,9 @@ def _seed_identity_phase(session: Session, users_count: int, batch_size: int, rn
                 "user_id": composer_user_id,
                 "display_name": f"Composer {str(composer_user_id)[:8]}",
                 "bio": "Generated fixture composer profile.",
-                "country_code": _pick_weighted(rng, [("US", 0.35), ("GB", 0.2), ("DE", 0.15), ("FR", 0.15), ("UA", 0.15)]),
+                "country_code": _pick_weighted(
+                    rng, [("US", 0.35), ("GB", 0.2), ("DE", 0.15), ("FR", 0.15), ("UA", 0.15)]
+                ),
                 "verified": rng.random() < 0.08,
             }
         )
@@ -247,7 +272,9 @@ def _seed_identity_phase(session: Session, users_count: int, batch_size: int, rn
     staff_user_ids = [
         row.user_id
         for row in session.execute(
-            select(UserRole.user_id).where(UserRole.role_id.in_((role_map["moderator"], role_map["admin"])))
+            select(UserRole.user_id).where(
+                UserRole.role_id.in_((role_map["moderator"], role_map["admin"]))
+            )
         ).all()
     ]
     composer_profile_ids = [profile_id for profile_id, _ in composer_profiles]
@@ -330,7 +357,9 @@ def _seed_catalog_phase(
             for genre_id in rng.sample(genre_ids, k=min(len(genre_ids), rng.randint(1, 3))):
                 track_genres_rows.append({"track_id": row.id, "genre_id": genre_id})
             for tag_id in rng.sample(tag_ids, k=min(len(tag_ids), rng.randint(0, 2))):
-                entity_tags_rows.append({"tag_id": tag_id, "entity_type": "track", "entity_id": row.id})
+                entity_tags_rows.append(
+                    {"tag_id": tag_id, "entity_type": "track", "entity_id": row.id}
+                )
             if rng.random() < 0.6:
                 service = rng.choice(MUSIC_SERVICES)
                 external_links_rows.append(
@@ -346,7 +375,9 @@ def _seed_catalog_phase(
 
     _bulk_insert(session, TrackAuthor, track_authors_rows, batch_size)
     _bulk_insert(session, TrackGenre, track_genres_rows, batch_size)
-    _bulk_insert_with_conflict(session, EntityTag, entity_tags_rows, batch_size, ["tag_id", "entity_type", "entity_id"])
+    _bulk_insert_with_conflict(
+        session, EntityTag, entity_tags_rows, batch_size, ["tag_id", "entity_type", "entity_id"]
+    )
     _bulk_insert_with_conflict(
         session,
         ExternalLink,
@@ -395,7 +426,9 @@ def _seed_catalog_phase(
                 rng.sample(track_pool, k=min(len(track_pool), rng.randint(5, 15))),
                 start=1,
             ):
-                album_tracks_rows.append({"album_id": row.id, "track_id": track_id, "position": pos})
+                album_tracks_rows.append(
+                    {"album_id": row.id, "track_id": track_id, "position": pos}
+                )
             if rng.random() < 0.8:
                 service = rng.choice(MUSIC_SERVICES)
                 external_links_rows.append(
@@ -408,7 +441,9 @@ def _seed_catalog_phase(
                     }
                 )
             for tag_id in rng.sample(tag_ids, k=min(len(tag_ids), rng.randint(1, 3))):
-                entity_tags_rows.append({"tag_id": tag_id, "entity_type": "album", "entity_id": row.id})
+                entity_tags_rows.append(
+                    {"tag_id": tag_id, "entity_type": "album", "entity_id": row.id}
+                )
         session.flush()
 
     _bulk_insert(session, AlbumTrack, album_tracks_rows, batch_size)
@@ -461,7 +496,9 @@ def _seed_library_phase(
                 "owner_user_id": rng.choice(all_user_ids),
                 "title": f"Fixture Playlist {index + 1}",
                 "description": "Generated fixture playlist.",
-                "visibility": _pick_weighted(rng, [("public", 0.45), ("unlisted", 0.25), ("private", 0.3)]),
+                "visibility": _pick_weighted(
+                    rng, [("public", 0.45), ("unlisted", 0.25), ("private", 0.3)]
+                ),
             }
         )
 
@@ -506,7 +543,9 @@ def _seed_library_phase(
                     }
                 )
             for tag_id in rng.sample(tag_ids, k=min(len(tag_ids), rng.randint(1, 2))):
-                entity_tags_rows.append({"tag_id": tag_id, "entity_type": "playlist", "entity_id": row.id})
+                entity_tags_rows.append(
+                    {"tag_id": tag_id, "entity_type": "playlist", "entity_id": row.id}
+                )
         session.flush()
 
     _bulk_insert(session, PlaylistTrack, playlist_tracks_rows, batch_size)
@@ -517,7 +556,9 @@ def _seed_library_phase(
         batch_size,
         ["entity_type", "entity_id", "service", "url"],
     )
-    _bulk_insert_with_conflict(session, EntityTag, entity_tags_rows, batch_size, ["tag_id", "entity_type", "entity_id"])
+    _bulk_insert_with_conflict(
+        session, EntityTag, entity_tags_rows, batch_size, ["tag_id", "entity_type", "entity_id"]
+    )
 
     library_rows = []
     visible_playlist_pool = visible_playlist_ids or created_playlist_ids
@@ -540,7 +581,9 @@ def _seed_library_phase(
                     "section": "albums",
                 }
             )
-        for playlist_id in rng.sample(visible_playlist_pool, k=min(len(visible_playlist_pool), rng.randint(1, 3))):
+        for playlist_id in rng.sample(
+            visible_playlist_pool, k=min(len(visible_playlist_pool), rng.randint(1, 3))
+        ):
             library_rows.append(
                 {
                     "user_id": user_id,
@@ -550,7 +593,9 @@ def _seed_library_phase(
                 }
             )
 
-    _bulk_insert_with_conflict(session, LibraryItem, library_rows, batch_size, ["user_id", "item_type", "item_id"])
+    _bulk_insert_with_conflict(
+        session, LibraryItem, library_rows, batch_size, ["user_id", "item_type", "item_id"]
+    )
     session.commit()
     return {
         "created_playlist_ids": created_playlist_ids,
@@ -573,7 +618,9 @@ def _seed_social_phase(
         "playlist": playlist_state["visible_playlist_ids"][:],
     }
     if not all(target_pool.values()):
-        raise RuntimeError("Published tracks/albums and visible playlists are required for social fixtures.")
+        raise RuntimeError(
+            "Published tracks/albums and visible playlists are required for social fixtures."
+        )
 
     likes_target_count = max(4000, len(all_user_ids) * 8)
     like_rows = []
@@ -605,7 +652,9 @@ def _seed_social_phase(
         ["user_id", "target_type", "target_id"],
         return_model=Like,
     )
-    _bulk_insert_with_conflict(session, LibraryItem, like_library_rows, batch_size, ["user_id", "item_type", "item_id"])
+    _bulk_insert_with_conflict(
+        session, LibraryItem, like_library_rows, batch_size, ["user_id", "item_type", "item_id"]
+    )
 
     comments_target_count = max(2500, len(all_user_ids) * 4)
     comment_rows = []
@@ -619,11 +668,21 @@ def _seed_social_phase(
                 "target_id": target_id,
                 "parent_comment_id": None,
                 "body": "Generated fixture comment.",
-                "status": _pick_weighted(rng, [("visible", 0.85), ("hidden", 0.07), ("pending_review", 0.05), ("deleted", 0.03)]),
+                "status": _pick_weighted(
+                    rng,
+                    [
+                        ("visible", 0.85),
+                        ("hidden", 0.07),
+                        ("pending_review", 0.05),
+                        ("deleted", 0.03),
+                    ],
+                ),
             }
         )
 
-    created_root_comments = _bulk_insert(session, Comment, comment_rows, batch_size, return_model=Comment)
+    created_root_comments = _bulk_insert(
+        session, Comment, comment_rows, batch_size, return_model=Comment
+    )
     reply_rows = []
     reply_source = [row for row in created_root_comments if row.status == "visible"]
     for _ in range(max(300, len(reply_source) // 8)):
@@ -668,7 +727,9 @@ def _seed_discovery_phase(
         return 0
 
     track_links = session.execute(
-        select(ExternalLink.id, ExternalLink.entity_id).where(ExternalLink.entity_type == "track", ExternalLink.entity_id.in_(published_tracks))
+        select(ExternalLink.id, ExternalLink.entity_id).where(
+            ExternalLink.entity_type == "track", ExternalLink.entity_id.in_(published_tracks)
+        )
     ).all()
     links_by_track: dict[UUID, list[UUID]] = {}
     for link_id, track_id in track_links:
@@ -718,9 +779,7 @@ def _seed_discovery_phase(
 
     for track_id, delta in plays_delta.items():
         session.execute(
-            update(Track)
-            .where(Track.id == track_id)
-            .values(plays_count=Track.plays_count + delta)
+            update(Track).where(Track.id == track_id).values(plays_count=Track.plays_count + delta)
         )
     session.flush()
     session.commit()
@@ -738,22 +797,33 @@ def _seed_moderation_phase(
     comment_ids: list[UUID],
 ) -> dict[str, int]:
     if not staff_user_ids:
-        role_ids = session.execute(select(Role.id).where(Role.code.in_(("moderator", "admin")))).scalars().all()
+        role_ids = (
+            session.execute(select(Role.id).where(Role.code.in_(("moderator", "admin"))))
+            .scalars()
+            .all()
+        )
         if role_ids:
-            staff_user_ids = session.execute(select(UserRole.user_id).where(UserRole.role_id.in_(role_ids))).scalars().all()
+            staff_user_ids = (
+                session.execute(select(UserRole.user_id).where(UserRole.role_id.in_(role_ids)))
+                .scalars()
+                .all()
+            )
     if not staff_user_ids:
         staff_user_ids = all_user_ids[:]
 
     report_targets: dict[str, list[UUID]] = {
         "track": catalog_state["published_track_ids"] or catalog_state["created_track_ids"],
         "album": catalog_state["published_album_ids"] or catalog_state["created_album_ids"],
-        "playlist": playlist_state["visible_playlist_ids"] or playlist_state["created_playlist_ids"],
+        "playlist": playlist_state["visible_playlist_ids"]
+        or playlist_state["created_playlist_ids"],
         "comment": comment_ids,
     }
     report_count = max(1200, len(all_user_ids))
     report_rows = []
     for _ in range(report_count):
-        target_type = _pick_weighted(rng, [("track", 0.45), ("album", 0.2), ("playlist", 0.15), ("comment", 0.2)])
+        target_type = _pick_weighted(
+            rng, [("track", 0.45), ("album", 0.2), ("playlist", 0.15), ("comment", 0.2)]
+        )
         pool = report_targets[target_type]
         if not pool:
             continue
@@ -793,7 +863,9 @@ def _seed_moderation_phase(
             "action": "review_content",
             "metadata": {"source": "fixtures"},
         }
-        for target_id in rng.sample(report_targets["track"], k=min(120, len(report_targets["track"])))
+        for target_id in rng.sample(
+            report_targets["track"], k=min(120, len(report_targets["track"]))
+        )
     )
     created_actions = _bulk_insert(session, ModerationAction, action_rows, batch_size)
     session.commit()
@@ -825,7 +897,11 @@ def _sync_target_counter(session: Session, model, target_type: str, ids: list[UU
         ).all()
         comments_rows = session.execute(
             select(Comment.target_id, func.count())
-            .where(Comment.target_type == target_type, Comment.target_id.in_(chunk_ids), Comment.status == "visible")
+            .where(
+                Comment.target_type == target_type,
+                Comment.target_id.in_(chunk_ids),
+                Comment.status == "visible",
+            )
             .group_by(Comment.target_id)
         ).all()
         likes_count.update({target_id: count for target_id, count in likes_rows})
@@ -844,7 +920,9 @@ def _sync_target_counter(session: Session, model, target_type: str, ids: list[UU
 
 def _ensure_genres(session: Session) -> list[UUID]:
     existing_codes = set(session.execute(select(Genre.code)).scalars())
-    missing_rows = [{"code": code, "name": name} for code, name in GENRE_PAIRS if code not in existing_codes]
+    missing_rows = [
+        {"code": code, "name": name} for code, name in GENRE_PAIRS if code not in existing_codes
+    ]
     if missing_rows:
         session.execute(pg_insert(Genre), missing_rows)
         session.flush()
@@ -853,7 +931,9 @@ def _ensure_genres(session: Session) -> list[UUID]:
 
 def _ensure_tags(session: Session) -> list[UUID]:
     existing_slugs = set(session.execute(select(Tag.slug)).scalars())
-    missing_rows = [{"slug": slug, "name": name} for slug, name in TAG_PAIRS if slug not in existing_slugs]
+    missing_rows = [
+        {"slug": slug, "name": name} for slug, name in TAG_PAIRS if slug not in existing_slugs
+    ]
     if missing_rows:
         session.execute(pg_insert(Tag), missing_rows)
         session.flush()
@@ -879,7 +959,9 @@ def _bulk_insert(
 
     records = []
     for chunk in _chunked(rows, batch_size):
-        chunk_records = session.execute(pg_insert(model).returning(return_model), chunk).scalars().all()
+        chunk_records = (
+            session.execute(pg_insert(model).returning(return_model), chunk).scalars().all()
+        )
         records.extend(chunk_records)
     session.flush()
     return records
@@ -899,7 +981,9 @@ def _bulk_insert_with_conflict(
     if return_model is None:
         inserted = 0
         for chunk in _chunked(rows, batch_size):
-            statement = pg_insert(model).values(chunk).on_conflict_do_nothing(index_elements=conflict_keys)
+            statement = (
+                pg_insert(model).values(chunk).on_conflict_do_nothing(index_elements=conflict_keys)
+            )
             result = session.execute(statement)
             inserted += result.rowcount or 0
         session.flush()
@@ -924,9 +1008,7 @@ def _count_rows(session: Session, model) -> int:
 
 def _count_group(session: Session, column) -> dict[str, int]:
     rows = session.execute(
-        select(column, func.count())
-        .group_by(column)
-        .order_by(column.asc())
+        select(column, func.count()).group_by(column).order_by(column.asc())
     ).all()
     return {str(key): int(count) for key, count in rows}
 

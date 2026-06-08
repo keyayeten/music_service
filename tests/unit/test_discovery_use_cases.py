@@ -61,7 +61,9 @@ class _FakeDiscoveryRepository:
     async def increment_track_plays_count(self, track_id: UUID) -> None:
         return None
 
-    async def get_user_recommended_tracks(self, *, user_id: UUID, limit: int) -> list[RecommendedTrackReadModel]:
+    async def get_user_recommended_tracks(
+        self, *, user_id: UUID, limit: int
+    ) -> list[RecommendedTrackReadModel]:
         return [RecommendedTrackReadModel(track_id=self.track_b, score=9.0, source="personalized")]
 
     async def get_top_published_tracks(self, *, limit: int) -> list[RecommendedTrackReadModel]:

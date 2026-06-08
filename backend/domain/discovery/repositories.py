@@ -57,7 +57,9 @@ class DiscoveryRepository(Protocol):
     async def increment_track_plays_count(self, track_id: UUID) -> None:
         """Increment denormalized plays counter for track."""
 
-    async def get_user_recommended_tracks(self, *, user_id: UUID, limit: int) -> list[RecommendedTrackReadModel]:
+    async def get_user_recommended_tracks(
+        self, *, user_id: UUID, limit: int
+    ) -> list[RecommendedTrackReadModel]:
         """Return deterministic personalized track ranking for user."""
 
     async def get_top_published_tracks(self, *, limit: int) -> list[RecommendedTrackReadModel]:

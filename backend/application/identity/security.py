@@ -98,8 +98,12 @@ def decode_jwt(token: str, secret: str) -> dict[str, object]:
 
 
 def encode_jwt(payload: dict[str, object], secret: str) -> str:
-    header_segment = _base64_url_encode(json.dumps(_JWT_HEADER, separators=(",", ":"), sort_keys=True).encode("utf-8"))
-    payload_segment = _base64_url_encode(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8"))
+    header_segment = _base64_url_encode(
+        json.dumps(_JWT_HEADER, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    )
+    payload_segment = _base64_url_encode(
+        json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    )
     signing_input = f"{header_segment}.{payload_segment}".encode("utf-8")
     signature_segment = _sign(signing_input, secret)
     return f"{header_segment}.{payload_segment}.{signature_segment}"

@@ -1,8 +1,13 @@
-from collections.abc import AsyncGenerator
 import logging
+from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from backend.config.settings import Settings, get_settings
 
@@ -17,7 +22,11 @@ def init_database(settings: Settings | None = None) -> None:
     if _engine is not None:
         logger.debug("Database engine already initialized.")
         return
-    logger.info("Initializing database engine with pool_size=%s max_overflow=%s.", config.db_pool_size, config.db_max_overflow)
+    logger.info(
+        "Initializing database engine with pool_size=%s max_overflow=%s.",
+        config.db_pool_size,
+        config.db_max_overflow,
+    )
     _engine = create_async_engine(
         config.database_url,
         echo=config.db_echo,

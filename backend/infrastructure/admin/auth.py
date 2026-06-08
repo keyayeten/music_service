@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import or_, select
 from sqladmin.authentication import AuthenticationBackend
+from sqlalchemy import or_, select
 from starlette.requests import Request
 
 from backend.application.identity.security import verify_password

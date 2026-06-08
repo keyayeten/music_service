@@ -82,7 +82,9 @@ class _FakeLibraryRepository:
         )
         return True
 
-    async def replace_playlist_tracks(self, playlist_id: UUID, tracks: list[PlaylistTrackItemReadModel]) -> None:
+    async def replace_playlist_tracks(
+        self, playlist_id: UUID, tracks: list[PlaylistTrackItemReadModel]
+    ) -> None:
         playlist = self._playlists[playlist_id]
         self._playlists[playlist_id] = PlaylistReadModel(
             id=playlist.id,
@@ -128,7 +130,10 @@ def test_reorder_playlist_tracks_applies_new_positions() -> None:
         )
     )
 
-    assert [item.track_id for item in result.track_items] == [repository.track_b, repository.track_a]
+    assert [item.track_id for item in result.track_items] == [
+        repository.track_b,
+        repository.track_a,
+    ]
     assert [item.position for item in result.track_items] == [1, 2]
 
 

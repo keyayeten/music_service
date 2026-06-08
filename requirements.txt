@@ -9,6 +9,8 @@ alembic
 pytest
 pytest-asyncio
 httpx
+ruff
+pre-commit
 typer
 sqladmin>=0.20
 itsdangerous>=2.0

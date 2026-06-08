@@ -1,6 +1,6 @@
 import asyncio
-from contextlib import asynccontextmanager
 import json
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 import typer
@@ -13,8 +13,14 @@ from backend.config.settings import get_settings
 from backend.domain.common.exceptions import ValidationError
 from backend.infrastructure.persistence.database import get_session, init_database
 from backend.infrastructure.persistence.models.identity import User
-from backend.infrastructure.persistence.repositories.identity_auth import SqlAlchemyIdentityAuthRepository
-from backend.infrastructure.persistence.seeds.fixtures import FixtureSeedOptions, collect_fixture_stats, seed_fixtures
+from backend.infrastructure.persistence.repositories.identity_auth import (
+    SqlAlchemyIdentityAuthRepository,
+)
+from backend.infrastructure.persistence.seeds.fixtures import (
+    FixtureSeedOptions,
+    collect_fixture_stats,
+    seed_fixtures,
+)
 
 app = typer.Typer(help="CLI utilities for music_service.")
 fixtures_app = typer.Typer(help="Fixtures generation and inspection commands.")
@@ -37,11 +43,17 @@ def hello(
 @app.command("create-superuser")
 def create_superuser(
     email: Annotated[str | None, typer.Option("--email", "-e", help="Superuser email.")] = None,
-    username: Annotated[str | None, typer.Option("--username", "-u", help="Superuser username.")] = None,
-    password: Annotated[str | None, typer.Option("--password", "-p", help="Password (min 8 chars).")] = None,
+    username: Annotated[
+        str | None, typer.Option("--username", "-u", help="Superuser username.")
+    ] = None,
+    password: Annotated[
+        str | None, typer.Option("--password", "-p", help="Password (min 8 chars).")
+    ] = None,
     no_input: Annotated[
         bool,
-        typer.Option("--no-input", help="Fail if email/username/password are not passed (non-interactive)."),
+        typer.Option(
+            "--no-input", help="Fail if email/username/password are not passed (non-interactive)."
+        ),
     ] = False,
 ) -> None:
     """Create a new user with is_superuser=True and admin role (Django createsuperuser)."""
@@ -97,7 +109,9 @@ def _resolve_superuser_credentials(
             typer.echo("Passwords do not match. Try again.", err=True)
 
     try:
-        IdentityAuthUseCases._validate_signup_fields(resolved_email, resolved_username, resolved_password)
+        IdentityAuthUseCases._validate_signup_fields(
+            resolved_email, resolved_username, resolved_password
+        )
     except ValidationError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
@@ -189,7 +203,9 @@ async def _session_scope():
         await session_gen.aclose()
 
 
-async def _fixtures_seed_async(*, users: int, tracks: int, albums: int, playlists: int, batch_size: int) -> None:
+async def _fixtures_seed_async(
+    *, users: int, tracks: int, albums: int, playlists: int, batch_size: int
+) -> None:
     init_database()
     options = FixtureSeedOptions(
         users=users,

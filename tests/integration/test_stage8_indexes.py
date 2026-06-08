@@ -30,7 +30,9 @@ def test_stage8_indexes_and_trgm_extension_exist(db_session) -> None:
     playlists_index = _index_definition(db_session, "playlists", "ix_playlists_visibility_created")
     assert playlists_index is not None
 
-    comments_partial_index = _index_definition(db_session, "comments", "ix_comments_visible_target_created")
+    comments_partial_index = _index_definition(
+        db_session, "comments", "ix_comments_visible_target_created"
+    )
     assert comments_partial_index is not None
     assert "WHERE ((status)::text = 'visible'::text)" in comments_partial_index
 
@@ -38,6 +40,8 @@ def test_stage8_indexes_and_trgm_extension_exist(db_session) -> None:
     assert track_trgm_index is not None
     assert "gin_trgm_ops" in track_trgm_index
 
-    composer_trgm_index = _index_definition(db_session, "composer_profiles", "ix_composer_profiles_display_name_trgm")
+    composer_trgm_index = _index_definition(
+        db_session, "composer_profiles", "ix_composer_profiles_display_name_trgm"
+    )
     assert composer_trgm_index is not None
     assert "gin_trgm_ops" in composer_trgm_index

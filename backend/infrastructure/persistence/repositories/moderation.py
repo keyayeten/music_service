@@ -89,22 +89,26 @@ class SqlAlchemyModerationRepository(ModerationRepository):
         target_type: str,
         target_id: UUID,
     ) -> list[ModerationActionReadModel]:
-        rows = (await self._session.execute(
-            select(ModerationAction)
-            .where(
-                ModerationAction.target_type == target_type,
-                ModerationAction.target_id == target_id,
+        rows = (
+            await self._session.execute(
+                select(ModerationAction)
+                .where(
+                    ModerationAction.target_type == target_type,
+                    ModerationAction.target_id == target_id,
+                )
+                .order_by(desc(ModerationAction.created_at))
             )
-            .order_by(desc(ModerationAction.created_at))
-        )).scalars()
+        ).scalars()
         return [_to_moderation_action_read_model(row) for row in rows]
 
     async def has_role(self, user_id: UUID, role_code: str) -> bool:
-        row = (await self._session.execute(
-            select(Role.code)
-            .join(UserRole, UserRole.role_id == Role.id)
-            .where(UserRole.user_id == user_id, Role.code == role_code)
-        )).scalar_one_or_none()
+        row = (
+            await self._session.execute(
+                select(Role.code)
+                .join(UserRole, UserRole.role_id == Role.id)
+                .where(UserRole.user_id == user_id, Role.code == role_code)
+            )
+        ).scalar_one_or_none()
         return row is not None
 
 

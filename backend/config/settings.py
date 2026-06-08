@@ -1,6 +1,6 @@
+import os
 from dataclasses import dataclass
 from functools import lru_cache
-import os
 
 
 @dataclass(frozen=True)
@@ -99,5 +99,6 @@ def get_settings() -> Settings:
         log_level=_get_log_level("LOG_LEVEL", "INFO"),
         admin_enabled=_get_bool("ADMIN_ENABLED", False),
         admin_base_path=os.getenv("ADMIN_BASE_PATH", "/admin").strip() or "/admin",
-        admin_session_secret=os.getenv("ADMIN_SESSION_SECRET") or os.getenv("JWT_SECRET", "change-me-in-production"),
+        admin_session_secret=os.getenv("ADMIN_SESSION_SECRET")
+        or os.getenv("JWT_SECRET", "change-me-in-production"),
     )

@@ -7,7 +7,11 @@ import pytest
 
 from backend.application.moderation.use_cases.reports import ModerationReportUseCases
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
-from backend.domain.moderation.repositories import ModerationActionReadModel, ReportListFilter, ReportReadModel
+from backend.domain.moderation.repositories import (
+    ModerationActionReadModel,
+    ReportListFilter,
+    ReportReadModel,
+)
 from tests.async_tools import run_async
 
 
@@ -31,7 +35,9 @@ class _FakeModerationRepository:
         )
         self.last_action: ModerationActionReadModel | None = None
 
-    async def create_report(self, *, reporter_user_id: UUID, target_type: str, target_id: UUID, reason: str) -> ReportReadModel:
+    async def create_report(
+        self, *, reporter_user_id: UUID, target_type: str, target_id: UUID, reason: str
+    ) -> ReportReadModel:
         now = datetime.now(UTC)
         self.report = ReportReadModel(
             id=uuid4(),
@@ -92,7 +98,9 @@ class _FakeModerationRepository:
         )
         return self.last_action
 
-    async def list_moderation_actions_by_target(self, *, target_type: str, target_id: UUID) -> list[ModerationActionReadModel]:
+    async def list_moderation_actions_by_target(
+        self, *, target_type: str, target_id: UUID
+    ) -> list[ModerationActionReadModel]:
         if self.last_action is None:
             return []
         if self.last_action.target_type != target_type or self.last_action.target_id != target_id:
@@ -110,7 +118,11 @@ def test_create_report_requires_user_role() -> None:
     outsider_user_id = uuid4()
 
     with pytest.raises(AuthorizationError):
-        run_async(use_cases.create_report(outsider_user_id, target_type="track", target_id=uuid4(), reason="Spam content"))
+        run_async(
+            use_cases.create_report(
+                outsider_user_id, target_type="track", target_id=uuid4(), reason="Spam content"
+            )
+        )
 
 
 @pytest.mark.unit
@@ -118,7 +130,11 @@ def test_set_report_status_writes_audit_action() -> None:
     repository = _FakeModerationRepository()
     use_cases = ModerationReportUseCases(repository)
 
-    run_async(use_cases.set_report_status(repository.moderator_user_id, report_id=repository.report.id, target_status="in_review"))
+    run_async(
+        use_cases.set_report_status(
+            repository.moderator_user_id, report_id=repository.report.id, target_status="in_review"
+        )
+    )
 
     assert repository.last_action is not None
     assert repository.last_action.target_type == "report"
@@ -131,4 +147,10 @@ def test_set_report_status_rejects_invalid_transition() -> None:
     use_cases = ModerationReportUseCases(repository)
 
     with pytest.raises(ValidationError):
-        run_async(use_cases.set_report_status(repository.moderator_user_id, report_id=repository.report.id, target_status="resolved"))
+        run_async(
+            use_cases.set_report_status(
+                repository.moderator_user_id,
+                report_id=repository.report.id,
+                target_status="resolved",
+            )
+        )

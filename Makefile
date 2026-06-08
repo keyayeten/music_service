@@ -5,13 +5,26 @@ COMPOSE_FILE ?= infra/docker/docker-compose.yml
 COMPOSE_PROJECT_NAME ?= music_service
 COMPOSE ?= docker compose -p $(COMPOSE_PROJECT_NAME) -f $(COMPOSE_FILE) --env-file .env
 
-.PHONY: init-env install run-native infra-up infra-down infra-logs up down logs ps migrate migrate-docker test test-unit test-integration test-api test-e2e smoke-health wait-infra migrate-clean pre-merge cli-hello create-superuser fixtures-seed fixtures-stats
+.PHONY: init-env install lint lint-fix format check-style run-native infra-up infra-down infra-logs up down logs ps migrate migrate-docker test test-unit test-integration test-api test-e2e smoke-health wait-infra migrate-clean pre-merge cli-hello create-superuser fixtures-seed fixtures-stats
 
 init-env:
 	@$(PYTHON) -c "from pathlib import Path; src=Path('.env.example'); dst=Path('.env'); exists=dst.exists(); dst.write_text(src.read_text(), encoding='utf-8') if (src.exists() and not exists) else None; print('.env created from .env.example' if (src.exists() and not exists) else '.env already exists')"
 
 install:
 	$(PYTHON) -m pip install -r requirements.txt
+
+lint:
+	$(PYTHON) -m ruff check .
+
+lint-fix:
+	$(PYTHON) -m ruff check . --fix
+
+format:
+	$(PYTHON) -m ruff format .
+
+check-style:
+	$(PYTHON) -m ruff check .
+	$(PYTHON) -m ruff format . --check
 
 migrate: init-env
 	alembic upgrade head

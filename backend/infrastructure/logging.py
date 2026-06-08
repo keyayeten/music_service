@@ -24,8 +24,16 @@ def configure_logging(settings: Settings) -> None:
                 }
             },
             "loggers": {
-                "backend": {"handlers": ["console"], "level": settings.log_level, "propagate": False},
-                "uvicorn.error": {"handlers": ["console"], "level": settings.log_level, "propagate": False},
+                "backend": {
+                    "handlers": ["console"],
+                    "level": settings.log_level,
+                    "propagate": False,
+                },
+                "uvicorn.error": {
+                    "handlers": ["console"],
+                    "level": settings.log_level,
+                    "propagate": False,
+                },
                 "uvicorn.access": {"handlers": ["console"], "level": "WARNING", "propagate": False},
             },
             "root": {"handlers": ["console"], "level": "WARNING"},

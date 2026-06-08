@@ -5,7 +5,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_current_identity_user, get_db_session, get_discovery_use_cases, get_social_interaction_use_cases
+from backend.api.deps import (
+    get_current_identity_user,
+    get_db_session,
+    get_discovery_use_cases,
+    get_social_interaction_use_cases,
+)
 from backend.api.v1.schemas.social import (
     CommentResponse,
     CommentWithCountersResponse,

@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_current_identity_user, get_db_session, get_identity_auth_use_cases, get_user_roles
+from backend.api.deps import (
+    get_current_identity_user,
+    get_db_session,
+    get_identity_auth_use_cases,
+    get_user_roles,
+)
 from backend.api.v1.schemas.auth import (
     AuthSuccessResponse,
     LoginRequest,
@@ -13,8 +18,8 @@ from backend.api.v1.schemas.auth import (
     UserProfileResponse,
 )
 from backend.application.identity.use_cases.auth import AuthResult, IdentityAuthUseCases
-from backend.domain.identity.repositories import IdentityUserReadModel
 from backend.domain.common.exceptions import AuthenticationError, ConflictError, ValidationError
+from backend.domain.identity.repositories import IdentityUserReadModel
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -36,7 +41,9 @@ async def signup(
         raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", exc.message) from exc
     except IntegrityError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", "User already exists.") from exc
+        raise _http_error(
+            status.HTTP_409_CONFLICT, "conflict_error", "User already exists."
+        ) from exc
     roles = await get_user_roles(db_session, str(result.user.id))
     return _to_auth_response(result, roles)
 
@@ -52,7 +59,9 @@ async def login(
     except ValidationError as exc:
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     except AuthenticationError as exc:
-        raise _http_error(status.HTTP_401_UNAUTHORIZED, "authentication_error", exc.message) from exc
+        raise _http_error(
+            status.HTTP_401_UNAUTHORIZED, "authentication_error", exc.message
+        ) from exc
     roles = await get_user_roles(db_session, str(result.user.id))
     return _to_auth_response(result, roles)
 
@@ -66,7 +75,9 @@ async def refresh(
     try:
         result = await auth_use_cases.refresh(payload.refresh_token)
     except AuthenticationError as exc:
-        raise _http_error(status.HTTP_401_UNAUTHORIZED, "authentication_error", exc.message) from exc
+        raise _http_error(
+            status.HTTP_401_UNAUTHORIZED, "authentication_error", exc.message
+        ) from exc
     roles = await get_user_roles(db_session, str(result.user.id))
     return _to_auth_response(result, roles)
 

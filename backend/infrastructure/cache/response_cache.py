@@ -31,7 +31,9 @@ class ApiResponseCache:
         return json.loads(raw_value)
 
     async def set_json(self, key: str, payload: dict, ttl_seconds: int) -> None:
-        await self.redis_client.setex(key, ttl_seconds, json.dumps(payload, separators=(",", ":"), ensure_ascii=True))
+        await self.redis_client.setex(
+            key, ttl_seconds, json.dumps(payload, separators=(",", ":"), ensure_ascii=True)
+        )
 
     async def delete_key(self, key: str) -> None:
         await self.redis_client.delete(key)

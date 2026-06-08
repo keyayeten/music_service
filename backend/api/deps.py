@@ -17,15 +17,19 @@ from backend.application.social.use_cases.interactions import SocialInteractionU
 from backend.config.settings import Settings, get_settings
 from backend.domain.common.exceptions import AuthenticationError
 from backend.domain.identity.repositories import IdentityUserReadModel
+from backend.infrastructure.cache.redis_client import get_redis_client
+from backend.infrastructure.cache.response_cache import ApiResponseCache
+from backend.infrastructure.persistence.database import get_session
 from backend.infrastructure.persistence.repositories.catalog import SqlAlchemyCatalogRepository
 from backend.infrastructure.persistence.repositories.discovery import SqlAlchemyDiscoveryRepository
-from backend.infrastructure.persistence.repositories.identity_auth import SqlAlchemyIdentityAuthRepository
+from backend.infrastructure.persistence.repositories.identity_auth import (
+    SqlAlchemyIdentityAuthRepository,
+)
 from backend.infrastructure.persistence.repositories.library import SqlAlchemyLibraryRepository
-from backend.infrastructure.persistence.repositories.moderation import SqlAlchemyModerationRepository
+from backend.infrastructure.persistence.repositories.moderation import (
+    SqlAlchemyModerationRepository,
+)
 from backend.infrastructure.persistence.repositories.social import SqlAlchemySocialRepository
-from backend.infrastructure.cache.response_cache import ApiResponseCache
-from backend.infrastructure.cache.redis_client import get_redis_client
-from backend.infrastructure.persistence.database import get_session
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
@@ -45,7 +49,9 @@ def get_api_response_cache(cache_client: Redis = Depends(get_cache_client)) -> A
     return ApiResponseCache(redis_client=cache_client, settings=get_settings())
 
 
-def get_identity_auth_use_cases(db_session: AsyncSession = Depends(get_db_session)) -> IdentityAuthUseCases:
+def get_identity_auth_use_cases(
+    db_session: AsyncSession = Depends(get_db_session),
+) -> IdentityAuthUseCases:
     settings = get_settings()
     repository = SqlAlchemyIdentityAuthRepository(db_session)
     return IdentityAuthUseCases(
@@ -56,42 +62,58 @@ def get_identity_auth_use_cases(db_session: AsyncSession = Depends(get_db_sessio
     )
 
 
-def get_identity_profiles_use_cases(db_session: AsyncSession = Depends(get_db_session)) -> IdentityProfilesUseCases:
+def get_identity_profiles_use_cases(
+    db_session: AsyncSession = Depends(get_db_session),
+) -> IdentityProfilesUseCases:
     repository = SqlAlchemyIdentityAuthRepository(db_session)
     return IdentityProfilesUseCases(repository=repository)
 
 
-def get_catalog_track_use_cases(db_session: AsyncSession = Depends(get_db_session)) -> CatalogTrackUseCases:
+def get_catalog_track_use_cases(
+    db_session: AsyncSession = Depends(get_db_session),
+) -> CatalogTrackUseCases:
     repository = SqlAlchemyCatalogRepository(db_session)
     return CatalogTrackUseCases(repository=repository)
 
 
-def get_catalog_album_use_cases(db_session: AsyncSession = Depends(get_db_session)) -> CatalogAlbumUseCases:
+def get_catalog_album_use_cases(
+    db_session: AsyncSession = Depends(get_db_session),
+) -> CatalogAlbumUseCases:
     repository = SqlAlchemyCatalogRepository(db_session)
     return CatalogAlbumUseCases(repository=repository)
 
 
-def get_library_playlist_use_cases(db_session: AsyncSession = Depends(get_db_session)) -> LibraryPlaylistUseCases:
+def get_library_playlist_use_cases(
+    db_session: AsyncSession = Depends(get_db_session),
+) -> LibraryPlaylistUseCases:
     repository = SqlAlchemyLibraryRepository(db_session)
     return LibraryPlaylistUseCases(repository=repository)
 
 
-def get_library_item_use_cases(db_session: AsyncSession = Depends(get_db_session)) -> LibraryItemUseCases:
+def get_library_item_use_cases(
+    db_session: AsyncSession = Depends(get_db_session),
+) -> LibraryItemUseCases:
     repository = SqlAlchemyLibraryRepository(db_session)
     return LibraryItemUseCases(repository=repository)
 
 
-def get_social_interaction_use_cases(db_session: AsyncSession = Depends(get_db_session)) -> SocialInteractionUseCases:
+def get_social_interaction_use_cases(
+    db_session: AsyncSession = Depends(get_db_session),
+) -> SocialInteractionUseCases:
     repository = SqlAlchemySocialRepository(db_session)
     return SocialInteractionUseCases(repository=repository)
 
 
-def get_moderation_report_use_cases(db_session: AsyncSession = Depends(get_db_session)) -> ModerationReportUseCases:
+def get_moderation_report_use_cases(
+    db_session: AsyncSession = Depends(get_db_session),
+) -> ModerationReportUseCases:
     repository = SqlAlchemyModerationRepository(db_session)
     return ModerationReportUseCases(repository=repository)
 
 
-def get_discovery_use_cases(db_session: AsyncSession = Depends(get_db_session)) -> DiscoveryUseCases:
+def get_discovery_use_cases(
+    db_session: AsyncSession = Depends(get_db_session),
+) -> DiscoveryUseCases:
     repository = SqlAlchemyDiscoveryRepository(db_session)
     return DiscoveryUseCases(repository=repository)
 
@@ -104,7 +126,9 @@ async def get_current_identity_user(
     try:
         return await auth_use_cases.get_current_user(access_token)
     except AuthenticationError as exc:
-        raise _http_error(status.HTTP_401_UNAUTHORIZED, "authentication_error", exc.message) from exc
+        raise _http_error(
+            status.HTTP_401_UNAUTHORIZED, "authentication_error", exc.message
+        ) from exc
 
 
 async def get_user_roles(db_session: AsyncSession, user_id: str) -> list[str]:
@@ -122,12 +146,16 @@ async def get_optional_identity_user(
     try:
         return await auth_use_cases.get_current_user(access_token)
     except AuthenticationError as exc:
-        raise _http_error(status.HTTP_401_UNAUTHORIZED, "authentication_error", exc.message) from exc
+        raise _http_error(
+            status.HTTP_401_UNAUTHORIZED, "authentication_error", exc.message
+        ) from exc
 
 
 def extract_bearer_token(authorization: str | None) -> str:
     if not authorization or not authorization.lower().startswith("bearer "):
-        raise _http_error(status.HTTP_401_UNAUTHORIZED, "authentication_error", "Bearer token is required.")
+        raise _http_error(
+            status.HTTP_401_UNAUTHORIZED, "authentication_error", "Bearer token is required."
+        )
     return authorization.split(" ", 1)[1].strip()
 
 

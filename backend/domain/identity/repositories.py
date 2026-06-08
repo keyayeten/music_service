@@ -42,7 +42,9 @@ class IdentityAuthRepository(Protocol):
     async def get_user_auth_by_login(self, login: str) -> IdentityUserAuthModel | None:
         """Lookup user by username or email with password hash."""
 
-    async def create_user(self, email: str, username: str, password_hash: str, status: str = "active") -> IdentityUserReadModel:
+    async def create_user(
+        self, email: str, username: str, password_hash: str, status: str = "active"
+    ) -> IdentityUserReadModel:
         """Create a new identity user."""
 
     async def get_user_by_email(self, email: str) -> IdentityUserReadModel | None:
@@ -63,7 +65,9 @@ class IdentityAuthRepository(Protocol):
     async def get_user_role_codes(self, user_id: UUID) -> list[str]:
         """List user role codes."""
 
-    async def get_composer_profile_by_user_id(self, user_id: UUID) -> ComposerProfileReadModel | None:
+    async def get_composer_profile_by_user_id(
+        self, user_id: UUID
+    ) -> ComposerProfileReadModel | None:
         """Find composer profile by user id."""
 
     async def upsert_composer_profile(

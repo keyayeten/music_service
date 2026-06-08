@@ -19,7 +19,9 @@ def _signup(client) -> dict:
 
 
 def _grant_role(db_session, user_id: str, role_code: str) -> None:
-    role_id = db_session.execute(text("SELECT id FROM roles WHERE code = :code"), {"code": role_code}).scalar_one()
+    role_id = db_session.execute(
+        text("SELECT id FROM roles WHERE code = :code"), {"code": role_code}
+    ).scalar_one()
     db_session.execute(
         text(
             """
@@ -60,10 +62,16 @@ def _create_and_publish_track(client, access_token: str, *, title: str) -> str:
 
 
 @pytest.mark.api
-def test_key_stage6_actions_create_events_and_external_click_rows(client, db_session, redis_client) -> None:
+def test_key_stage6_actions_create_events_and_external_click_rows(
+    client, db_session, redis_client
+) -> None:
     owner = _signup(client)
-    _ensure_composer_profile(client, db_session, owner["user"]["id"], owner["tokens"]["access_token"])
-    track_id = _create_and_publish_track(client, owner["tokens"]["access_token"], title="Stage6 Event Track")
+    _ensure_composer_profile(
+        client, db_session, owner["user"]["id"], owner["tokens"]["access_token"]
+    )
+    track_id = _create_and_publish_track(
+        client, owner["tokens"]["access_token"], title="Stage6 Event Track"
+    )
 
     album_response = client.post(
         "/api/v1/catalog/albums",
@@ -116,7 +124,11 @@ def test_key_stage6_actions_create_events_and_external_click_rows(client, db_ses
     playlist_response = client.post(
         "/api/v1/library/playlists",
         headers={"Authorization": f"Bearer {listener_access}"},
-        json={"title": "Stage6 Playlist", "description": "Discovery playlist", "visibility": "private"},
+        json={
+            "title": "Stage6 Playlist",
+            "description": "Discovery playlist",
+            "visibility": "private",
+        },
     )
     assert playlist_response.status_code == 201
     playlist_id = playlist_response.json()["id"]
@@ -206,14 +218,28 @@ def test_key_stage6_actions_create_events_and_external_click_rows(client, db_ses
 
 
 @pytest.mark.api
-def test_recommendations_support_personalized_and_fallback_modes(client, db_session, redis_client) -> None:
+def test_recommendations_support_personalized_and_fallback_modes(
+    client, db_session, redis_client
+) -> None:
     owner = _signup(client)
-    _ensure_composer_profile(client, db_session, owner["user"]["id"], owner["tokens"]["access_token"])
-    top_track_id = _create_and_publish_track(client, owner["tokens"]["access_token"], title="Stage6 Reco Top")
-    secondary_track_id = _create_and_publish_track(client, owner["tokens"]["access_token"], title="Stage6 Reco Secondary")
+    _ensure_composer_profile(
+        client, db_session, owner["user"]["id"], owner["tokens"]["access_token"]
+    )
+    top_track_id = _create_and_publish_track(
+        client, owner["tokens"]["access_token"], title="Stage6 Reco Top"
+    )
+    secondary_track_id = _create_and_publish_track(
+        client, owner["tokens"]["access_token"], title="Stage6 Reco Secondary"
+    )
 
-    db_session.execute(text("UPDATE tracks SET likes_count = 100000 WHERE id = :track_id"), {"track_id": top_track_id})
-    db_session.execute(text("UPDATE tracks SET likes_count = 1 WHERE id = :track_id"), {"track_id": secondary_track_id})
+    db_session.execute(
+        text("UPDATE tracks SET likes_count = 100000 WHERE id = :track_id"),
+        {"track_id": top_track_id},
+    )
+    db_session.execute(
+        text("UPDATE tracks SET likes_count = 1 WHERE id = :track_id"),
+        {"track_id": secondary_track_id},
+    )
     db_session.commit()
 
     listener = _signup(client)

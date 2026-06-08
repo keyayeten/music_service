@@ -1,7 +1,7 @@
 import asyncio
-from collections.abc import Generator
 import socket
 import sys
+from collections.abc import Generator
 from urllib.parse import urlparse
 
 if sys.platform == "win32":
@@ -10,10 +10,8 @@ if sys.platform == "win32":
 import pytest
 from fastapi.testclient import TestClient
 from redis import Redis
-from sqlalchemy import text
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session, sessionmaker
 
 from backend.config.settings import get_settings
 from backend.infrastructure.persistence.database import close_database
@@ -53,7 +51,9 @@ def client(app, db_session, redis_client) -> Generator[TestClient, None, None]:
 def _require_db_service() -> None:
     settings = get_settings()
     parsed = urlparse(
-        settings.database_url.replace("postgresql+asyncpg://", "postgresql://").replace("postgresql+psycopg://", "postgresql://")
+        settings.database_url.replace("postgresql+asyncpg://", "postgresql://").replace(
+            "postgresql+psycopg://", "postgresql://"
+        )
     )
     host = parsed.hostname or "localhost"
     port = parsed.port or 5432
@@ -90,7 +90,9 @@ def db_session() -> Generator[Session, None, None]:
     settings = get_settings()
     sync_database_url = settings.database_url.replace("+asyncpg", "+psycopg")
     engine = create_engine(sync_database_url, pool_pre_ping=True)
-    session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+    session_factory = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
     session = session_factory()
     _require_db(session)
     try:

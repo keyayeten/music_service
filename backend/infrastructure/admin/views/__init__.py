@@ -19,7 +19,11 @@ from backend.infrastructure.admin.views.identity import (
     UserRoleAdmin,
     UserRoleProfileAdmin,
 )
-from backend.infrastructure.admin.views.library import LibraryItemAdmin, PlaylistAdmin, PlaylistTrackAdmin
+from backend.infrastructure.admin.views.library import (
+    LibraryItemAdmin,
+    PlaylistAdmin,
+    PlaylistTrackAdmin,
+)
 from backend.infrastructure.admin.views.moderation import ModerationActionAdmin, ReportAdmin
 from backend.infrastructure.admin.views.ops import ServiceHeartbeatAdmin
 from backend.infrastructure.admin.views.social import CommentAdmin, LikeAdmin

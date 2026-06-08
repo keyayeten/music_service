@@ -1,7 +1,7 @@
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 import logging
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from dotenv import load_dotenv
@@ -100,7 +100,9 @@ def create_app() -> FastAPI:
         return response
 
     @application.exception_handler(RequestValidationError)
-    async def _validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    async def _validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
         details = [
             {"field": ".".join(str(part) for part in err["loc"]), "message": err["msg"]}
             for err in exc.errors()
@@ -112,7 +114,11 @@ def create_app() -> FastAPI:
         )
         return JSONResponse(
             status_code=422,
-            content={"code": "validation_error", "message": "Request validation failed.", "details": details},
+            content={
+                "code": "validation_error",
+                "message": "Request validation failed.",
+                "details": details,
+            },
         )
 
     return application

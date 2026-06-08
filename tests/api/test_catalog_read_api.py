@@ -122,7 +122,9 @@ def _clear_cache_namespace(redis_client, namespace: str) -> None:
 
 
 @pytest.mark.api
-def test_anonymous_catalog_list_returns_only_published_entities(client, db_session, redis_client) -> None:
+def test_anonymous_catalog_list_returns_only_published_entities(
+    client, db_session, redis_client
+) -> None:
     _clear_cache_namespace(redis_client, "catalog:albums:list")
     seeded = _seed_catalog_read_data(db_session)
 
@@ -160,7 +162,9 @@ def test_anonymous_track_detail_rejects_unpublished_track(client, db_session, re
 
 
 @pytest.mark.api
-def test_catalog_albums_list_uses_cache_with_ttl_staleness(client, db_session, redis_client) -> None:
+def test_catalog_albums_list_uses_cache_with_ttl_staleness(
+    client, db_session, redis_client
+) -> None:
     _clear_cache_namespace(redis_client, "catalog:albums:list")
     seeded = _seed_catalog_read_data(db_session)
 
@@ -182,7 +186,9 @@ def test_catalog_albums_list_uses_cache_with_ttl_staleness(client, db_session, r
 
 
 @pytest.mark.api
-def test_catalog_album_detail_uses_cache_with_ttl_staleness(client, db_session, redis_client) -> None:
+def test_catalog_album_detail_uses_cache_with_ttl_staleness(
+    client, db_session, redis_client
+) -> None:
     _clear_cache_namespace(redis_client, "catalog:albums:get")
     seeded = _seed_catalog_read_data(db_session)
 

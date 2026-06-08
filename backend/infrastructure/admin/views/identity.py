@@ -8,16 +8,35 @@ from wtforms import PasswordField
 
 from backend.application.identity.security import hash_password
 from backend.infrastructure.admin.auth import get_session_user_id
-from backend.infrastructure.persistence.models.identity import ComposerProfile, Role, User, UserRole, UserRoleProfile
+from backend.infrastructure.persistence.models.identity import (
+    ComposerProfile,
+    Role,
+    User,
+    UserRole,
+    UserRoleProfile,
+)
 
 
 class UserAdmin(ModelView, model=User):
     name = "User"
     name_plural = "Users"
     category = "Identity"
-    column_list = [User.id, User.email, User.username, User.status, User.is_superuser, User.created_at]
+    column_list = [
+        User.id,
+        User.email,
+        User.username,
+        User.status,
+        User.is_superuser,
+        User.created_at,
+    ]
     column_searchable_list = [User.email, User.username]
-    column_sortable_list = [User.email, User.username, User.status, User.is_superuser, User.created_at]
+    column_sortable_list = [
+        User.email,
+        User.username,
+        User.status,
+        User.is_superuser,
+        User.created_at,
+    ]
     column_details_exclude_list = [User.password_hash]
     form_excluded_columns = [User.password_hash, User.created_at, User.updated_at]
     form_extra_fields = {"password": PasswordField("Password")}

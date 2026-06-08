@@ -17,7 +17,9 @@ def _signup(client) -> dict:
 
 
 def _grant_role(db_session, user_id: str, role_code: str) -> None:
-    role_id = db_session.execute(text("SELECT id FROM roles WHERE code = :code"), {"code": role_code}).scalar_one()
+    role_id = db_session.execute(
+        text("SELECT id FROM roles WHERE code = :code"), {"code": role_code}
+    ).scalar_one()
     db_session.execute(
         text(
             """
@@ -103,7 +105,9 @@ def test_replace_album_tracks_requires_owner_permissions(client, db_session, red
 
 
 @pytest.mark.api
-def test_create_track_requires_composer_role_even_with_existing_profile(client, db_session, redis_client) -> None:
+def test_create_track_requires_composer_role_even_with_existing_profile(
+    client, db_session, redis_client
+) -> None:
     signup_payload = _signup(client)
     user_id = signup_payload["user"]["id"]
     access_token = signup_payload["tokens"]["access_token"]

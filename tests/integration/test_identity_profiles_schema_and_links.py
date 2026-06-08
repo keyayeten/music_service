@@ -4,8 +4,13 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
-from backend.application.identity.use_cases.profiles import COMPOSER_PROFILE_TYPE, IdentityProfilesUseCases
-from backend.infrastructure.persistence.repositories.identity_auth import SqlAlchemyIdentityAuthRepository
+from backend.application.identity.use_cases.profiles import (
+    COMPOSER_PROFILE_TYPE,
+    IdentityProfilesUseCases,
+)
+from backend.infrastructure.persistence.repositories.identity_auth import (
+    SqlAlchemyIdentityAuthRepository,
+)
 from tests.async_tools import AsyncSessionAdapter, run_async
 
 
@@ -136,16 +141,20 @@ def test_update_profile_syncs_user_role_profiles_link(db_session) -> None:
     )
     db_session.commit()
 
-    row = db_session.execute(
-        text(
-            """
+    row = (
+        db_session.execute(
+            text(
+                """
             SELECT role_id, profile_type, profile_id
             FROM user_role_profiles
             WHERE user_id = :user_id
             """
-        ),
-        {"user_id": user.id},
-    ).mappings().one()
+            ),
+            {"user_id": user.id},
+        )
+        .mappings()
+        .one()
+    )
 
     assert int(row["role_id"]) == composer_role_id
     assert row["profile_type"] == COMPOSER_PROFILE_TYPE

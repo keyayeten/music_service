@@ -25,9 +25,9 @@ from backend.api.v1.schemas.library import (
     ReorderPlaylistTracksRequest,
     UpdatePlaylistRequest,
 )
+from backend.application.discovery.use_cases.events_and_recommendations import DiscoveryUseCases
 from backend.application.library.use_cases.items import LibraryItemUseCases
 from backend.application.library.use_cases.playlists import LibraryPlaylistUseCases
-from backend.application.discovery.use_cases.events_and_recommendations import DiscoveryUseCases
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
 from backend.domain.identity.repositories import IdentityUserReadModel
 from backend.domain.library.repositories import LibraryItemReadModel, PlaylistReadModel
@@ -161,7 +161,11 @@ async def add_playlist_track(
         await db_session.commit()
     except ValueError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", "Track id should be a valid UUID value.") from exc
+        raise _http_error(
+            status.HTTP_400_BAD_REQUEST,
+            "validation_error",
+            "Track id should be a valid UUID value.",
+        ) from exc
     except ValidationError as exc:
         await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
@@ -170,7 +174,9 @@ async def add_playlist_track(
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     except IntegrityError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", "Playlist track constraints violated.") from exc
+        raise _http_error(
+            status.HTTP_409_CONFLICT, "conflict_error", "Playlist track constraints violated."
+        ) from exc
     return _to_playlist_response(result)
 
 
@@ -211,7 +217,11 @@ async def reorder_playlist_tracks(
         await db_session.commit()
     except ValueError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", "Track ids should be valid UUID values.") from exc
+        raise _http_error(
+            status.HTTP_400_BAD_REQUEST,
+            "validation_error",
+            "Track ids should be valid UUID values.",
+        ) from exc
     except ValidationError as exc:
         await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
@@ -296,13 +306,17 @@ async def add_library_item(
         await db_session.commit()
     except ValueError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", "Item id should be a valid UUID value.") from exc
+        raise _http_error(
+            status.HTTP_400_BAD_REQUEST, "validation_error", "Item id should be a valid UUID value."
+        ) from exc
     except ValidationError as exc:
         await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     except IntegrityError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", "Library item constraints violated.") from exc
+        raise _http_error(
+            status.HTTP_409_CONFLICT, "conflict_error", "Library item constraints violated."
+        ) from exc
     return _to_library_item_response(result)
 
 
@@ -382,7 +396,9 @@ def _http_error(status_code: int, code: str, message: str) -> HTTPException:
     return HTTPException(status_code=status_code, detail={"code": code, "message": message})
 
 
-async def _invalidate_public_playlist_cache(response_cache: ApiResponseCache, *, playlist_id: UUID) -> None:
+async def _invalidate_public_playlist_cache(
+    response_cache: ApiResponseCache, *, playlist_id: UUID
+) -> None:
     await response_cache.delete_namespace("library:playlists:public:list")
     detail_key = response_cache.build_key("library:playlists:public:get", playlist_id=playlist_id)
     await response_cache.delete_key(detail_key)

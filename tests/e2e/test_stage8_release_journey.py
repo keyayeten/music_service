@@ -65,12 +65,18 @@ def test_stage8_registration_login_and_content_journey(client, db_session) -> No
     create_track_response = client.post(
         "/api/v1/catalog/tracks",
         headers=headers,
-        json={"title": "Stage8 E2E Track", "description": "End-to-end flow", "duration_seconds": 210},
+        json={
+            "title": "Stage8 E2E Track",
+            "description": "End-to-end flow",
+            "duration_seconds": 210,
+        },
     )
     assert create_track_response.status_code == 201
     track_id = create_track_response.json()["id"]
 
-    publish_track_response = client.post(f"/api/v1/catalog/tracks/{track_id}/publish", headers=headers)
+    publish_track_response = client.post(
+        f"/api/v1/catalog/tracks/{track_id}/publish", headers=headers
+    )
     assert publish_track_response.status_code == 200
     assert publish_track_response.json()["status"] == "published"
 
@@ -89,7 +95,9 @@ def test_stage8_registration_login_and_content_journey(client, db_session) -> No
     )
     assert set_album_tracks_response.status_code == 200
 
-    publish_album_response = client.post(f"/api/v1/catalog/albums/{album_id}/publish", headers=headers)
+    publish_album_response = client.post(
+        f"/api/v1/catalog/albums/{album_id}/publish", headers=headers
+    )
     assert publish_album_response.status_code == 200
     assert publish_album_response.json()["status"] == "published"
 

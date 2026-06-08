@@ -55,13 +55,23 @@ class Track(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", server_default="draft")
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="draft", server_default="draft"
+    )
     duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
-    plays_count: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0, server_default="0")
-    likes_count: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0, server_default="0")
-    comments_count: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0, server_default="0")
+    plays_count: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default="0"
+    )
+    likes_count: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default="0"
+    )
+    comments_count: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default="0"
+    )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -79,12 +89,16 @@ class TrackAuthor(Base):
         Index("ix_track_authors_composer", "composer_profile_id"),
     )
 
-    track_id: Mapped[UUID] = mapped_column(ForeignKey("tracks.id", ondelete="CASCADE"), primary_key=True)
+    track_id: Mapped[UUID] = mapped_column(
+        ForeignKey("tracks.id", ondelete="CASCADE"), primary_key=True
+    )
     composer_profile_id: Mapped[UUID] = mapped_column(
         ForeignKey("composer_profiles.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    contribution_role: Mapped[str] = mapped_column(String(64), nullable=False, default="composer", server_default="composer")
+    contribution_role: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="composer", server_default="composer"
+    )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
@@ -96,14 +110,24 @@ class Album(Base):
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    owner_composer_id: Mapped[UUID] = mapped_column(ForeignKey("composer_profiles.id", ondelete="CASCADE"), nullable=False)
+    owner_composer_id: Mapped[UUID] = mapped_column(
+        ForeignKey("composer_profiles.id", ondelete="CASCADE"), nullable=False
+    )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", server_default="draft")
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="draft", server_default="draft"
+    )
     release_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    likes_count: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0, server_default="0")
-    comments_count: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0, server_default="0")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    likes_count: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default="0"
+    )
+    comments_count: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default="0"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -121,15 +145,25 @@ class AlbumTrack(Base):
         Index("ix_album_tracks_album_position", "album_id", "position"),
     )
 
-    album_id: Mapped[UUID] = mapped_column(ForeignKey("albums.id", ondelete="CASCADE"), primary_key=True)
-    track_id: Mapped[UUID] = mapped_column(ForeignKey("tracks.id", ondelete="CASCADE"), primary_key=True)
+    album_id: Mapped[UUID] = mapped_column(
+        ForeignKey("albums.id", ondelete="CASCADE"), primary_key=True
+    )
+    track_id: Mapped[UUID] = mapped_column(
+        ForeignKey("tracks.id", ondelete="CASCADE"), primary_key=True
+    )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class ExternalLink(Base):
     __tablename__ = "external_links"
     __table_args__ = (
-        UniqueConstraint("entity_type", "entity_id", "service", "url", name="uq_external_links_entity_service_url"),
+        UniqueConstraint(
+            "entity_type",
+            "entity_id",
+            "service",
+            "url",
+            name="uq_external_links_entity_service_url",
+        ),
         CheckConstraint(f"entity_type IN {ENTITY_TYPES}", name="ck_external_links_entity_type"),
         CheckConstraint(f"service IN {MUSIC_SERVICES}", name="ck_external_links_service"),
         Index("ix_external_links_entity", "entity_type", "entity_id"),
@@ -141,8 +175,12 @@ class ExternalLink(Base):
     entity_id: Mapped[UUID] = mapped_column(nullable=False)
     service: Mapped[str] = mapped_column(String(32), nullable=False)
     url: Mapped[str] = mapped_column(Text, nullable=False)
-    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    is_primary: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
 
 
 class Genre(Base):
@@ -151,17 +189,21 @@ class Genre(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     code: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
 
 
 class TrackGenre(Base):
     __tablename__ = "track_genres"
-    __table_args__ = (
-        Index("ix_track_genres_genre", "genre_id"),
-    )
+    __table_args__ = (Index("ix_track_genres_genre", "genre_id"),)
 
-    track_id: Mapped[UUID] = mapped_column(ForeignKey("tracks.id", ondelete="CASCADE"), primary_key=True)
-    genre_id: Mapped[UUID] = mapped_column(ForeignKey("genres.id", ondelete="CASCADE"), primary_key=True)
+    track_id: Mapped[UUID] = mapped_column(
+        ForeignKey("tracks.id", ondelete="CASCADE"), primary_key=True
+    )
+    genre_id: Mapped[UUID] = mapped_column(
+        ForeignKey("genres.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class Tag(Base):
@@ -170,7 +212,9 @@ class Tag(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     slug: Mapped[str] = mapped_column(String(80), nullable=False, unique=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
 
 
 class EntityTag(Base):
@@ -185,4 +229,6 @@ class EntityTag(Base):
     tag_id: Mapped[UUID] = mapped_column(ForeignKey("tags.id", ondelete="CASCADE"), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(32), nullable=False)
     entity_id: Mapped[UUID] = mapped_column(nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )

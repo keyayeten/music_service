@@ -78,7 +78,9 @@ class _FakeCatalogRepository:
         )
         return self.track
 
-    async def update_track(self, *, track_id: UUID, title: str, description: str | None, duration_seconds: int) -> TrackReadModel | None:
+    async def update_track(
+        self, *, track_id: UUID, title: str, description: str | None, duration_seconds: int
+    ) -> TrackReadModel | None:
         if self.track.id != track_id:
             return None
         self.track = TrackReadModel(
@@ -97,7 +99,9 @@ class _FakeCatalogRepository:
         )
         return self.track
 
-    async def replace_track_authors(self, track_id: UUID, authors: list[TrackAuthorReadModel]) -> None:
+    async def replace_track_authors(
+        self, track_id: UUID, authors: list[TrackAuthorReadModel]
+    ) -> None:
         if self.track.id != track_id:
             return
         self.track = TrackReadModel(
@@ -115,7 +119,9 @@ class _FakeCatalogRepository:
             genre_codes=self.track.genre_codes,
         )
 
-    async def set_track_status(self, track_id: UUID, status: str, published_at: datetime | None) -> TrackReadModel | None:
+    async def set_track_status(
+        self, track_id: UUID, status: str, published_at: datetime | None
+    ) -> TrackReadModel | None:
         if self.track.id != track_id:
             return None
         self.track = TrackReadModel(
@@ -157,21 +163,31 @@ def test_publish_track_sets_published_status() -> None:
 @pytest.mark.unit
 def test_submit_review_rejects_invalid_transition() -> None:
     repository = _FakeCatalogRepository()
-    repository.track = run_async(repository.set_track_status(repository.track_id, "published", datetime.now(UTC)))
+    repository.track = run_async(
+        repository.set_track_status(repository.track_id, "published", datetime.now(UTC))
+    )
     use_cases = CatalogTrackUseCases(repository=repository)
 
     with pytest.raises(ValidationError):
-        run_async(use_cases.submit_track_for_review(repository.user_id, track_id=repository.track_id))
+        run_async(
+            use_cases.submit_track_for_review(repository.user_id, track_id=repository.track_id)
+        )
 
 
 @pytest.mark.unit
 def test_moderation_requires_admin_or_moderator_role() -> None:
     repository = _FakeCatalogRepository()
-    repository.track = run_async(repository.set_track_status(repository.track_id, "pending_review", None))
+    repository.track = run_async(
+        repository.set_track_status(repository.track_id, "pending_review", None)
+    )
     use_cases = CatalogTrackUseCases(repository=repository)
 
     with pytest.raises(AuthorizationError):
-        run_async(use_cases.moderate_track(["user"], track_id=repository.track_id, target_status="published"))
+        run_async(
+            use_cases.moderate_track(
+                ["user"], track_id=repository.track_id, target_status="published"
+            )
+        )
 
 
 @pytest.mark.unit
@@ -180,7 +196,11 @@ def test_set_track_authors_requires_current_composer_in_author_list() -> None:
     use_cases = CatalogTrackUseCases(repository=repository)
 
     with pytest.raises(ValidationError):
-        run_async(use_cases.set_track_authors(repository.user_id, track_id=repository.track_id, author_profile_ids=[uuid4()]))
+        run_async(
+            use_cases.set_track_authors(
+                repository.user_id, track_id=repository.track_id, author_profile_ids=[uuid4()]
+            )
+        )
 
 
 @pytest.mark.unit
@@ -190,4 +210,8 @@ def test_create_track_requires_composer_role() -> None:
     use_cases = CatalogTrackUseCases(repository=repository)
 
     with pytest.raises(AuthorizationError):
-        run_async(use_cases.create_track(repository.user_id, title="Track", description=None, duration_seconds=120))
+        run_async(
+            use_cases.create_track(
+                repository.user_id, title="Track", description=None, duration_seconds=120
+            )
+        )

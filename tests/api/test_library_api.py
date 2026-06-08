@@ -19,7 +19,9 @@ def _signup(client) -> dict:
 
 
 def _grant_role(db_session, user_id: str, role_code: str) -> None:
-    role_id = db_session.execute(text("SELECT id FROM roles WHERE code = :code"), {"code": role_code}).scalar_one()
+    role_id = db_session.execute(
+        text("SELECT id FROM roles WHERE code = :code"), {"code": role_code}
+    ).scalar_one()
     db_session.execute(
         text(
             """
@@ -191,7 +193,9 @@ def test_library_items_crud_and_duplicate_conflict(client, db_session, redis_cli
 
 
 @pytest.mark.api
-def test_public_playlist_read_endpoints_use_cache_with_ttl_staleness(client, db_session, redis_client) -> None:
+def test_public_playlist_read_endpoints_use_cache_with_ttl_staleness(
+    client, db_session, redis_client
+) -> None:
     _clear_cache_namespace(redis_client, "library:playlists:public:list")
     _clear_cache_namespace(redis_client, "library:playlists:public:get")
 
@@ -224,7 +228,9 @@ def test_public_playlist_read_endpoints_use_cache_with_ttl_staleness(client, db_
 
     second_list_response = client.get("/api/v1/library/playlists/public")
     assert second_list_response.status_code == 200
-    second_list_titles = {item["id"]: item["title"] for item in second_list_response.json()["items"]}
+    second_list_titles = {
+        item["id"]: item["title"] for item in second_list_response.json()["items"]
+    }
     assert second_list_titles[playlist_id] == "Cached Playlist"
 
     second_detail_response = client.get(f"/api/v1/library/playlists/public/{playlist_id}")

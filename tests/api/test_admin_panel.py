@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from backend.application.identity.security import hash_password
+
+
 @pytest.mark.api
 def test_admin_panel_requires_login_when_enabled(db_session, admin_enabled_app) -> None:
     email = f"admin_panel_{uuid4().hex}@example.com"

@@ -35,7 +35,9 @@ def wait_for_postgres(timeout_seconds: int = 60) -> None:
 
 
 def wait_for_redis(timeout_seconds: int = 60) -> None:
-    client = Redis.from_url(_redis_url(), decode_responses=True, socket_connect_timeout=1, socket_timeout=1)
+    client = Redis.from_url(
+        _redis_url(), decode_responses=True, socket_connect_timeout=1, socket_timeout=1
+    )
     deadline = time.time() + timeout_seconds
     last_error: Exception | None = None
     while time.time() < deadline:

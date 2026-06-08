@@ -6,7 +6,11 @@ from sqlalchemy import delete, func, literal, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.domain.social.repositories import CommentReadModel, SocialRepository, SocialTargetReadModel
+from backend.domain.social.repositories import (
+    CommentReadModel,
+    SocialRepository,
+    SocialTargetReadModel,
+)
 from backend.infrastructure.persistence.models.catalog import Album, Track
 from backend.infrastructure.persistence.models.library import LibraryItem, Playlist
 from backend.infrastructure.persistence.models.social import Comment, Like
@@ -17,7 +21,9 @@ class SqlAlchemySocialRepository(SocialRepository):
         self._session = session
 
     async def get_target(self, target_type: str, target_id: UUID) -> SocialTargetReadModel | None:
-        row = (await self._session.execute(_target_select_stmt(target_type, target_id))).one_or_none()
+        row = (
+            await self._session.execute(_target_select_stmt(target_type, target_id))
+        ).one_or_none()
         if row is None:
             return None
         return SocialTargetReadModel(
@@ -85,17 +91,19 @@ class SqlAlchemySocialRepository(SocialRepository):
         limit: int,
         offset: int,
     ) -> list[CommentReadModel]:
-        rows = (await self._session.execute(
-            select(Comment)
-            .where(
-                Comment.target_type == target_type,
-                Comment.target_id == target_id,
-                Comment.status == "visible",
+        rows = (
+            await self._session.execute(
+                select(Comment)
+                .where(
+                    Comment.target_type == target_type,
+                    Comment.target_id == target_id,
+                    Comment.status == "visible",
+                )
+                .order_by(Comment.created_at.desc())
+                .limit(limit)
+                .offset(offset)
             )
-            .order_by(Comment.created_at.desc())
-            .limit(limit)
-            .offset(offset)
-        )).scalars()
+        ).scalars()
         return [_to_comment_read_model(item) for item in rows]
 
     async def update_target_counters(
@@ -120,7 +128,9 @@ class SqlAlchemySocialRepository(SocialRepository):
             return None
         return await self.get_target(target_type, target_id)
 
-    async def add_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
+    async def add_library_item_for_like(
+        self, *, user_id: UUID, target_type: str, target_id: UUID
+    ) -> None:
         statement = (
             insert(LibraryItem)
             .values(
@@ -134,7 +144,9 @@ class SqlAlchemySocialRepository(SocialRepository):
         await self._session.execute(statement)
         await self._session.flush()
 
-    async def remove_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
+    async def remove_library_item_for_like(
+        self, *, user_id: UUID, target_type: str, target_id: UUID
+    ) -> None:
         await self._session.execute(
             delete(LibraryItem).where(
                 LibraryItem.user_id == user_id,
@@ -148,18 +160,25 @@ class SqlAlchemySocialRepository(SocialRepository):
 def _target_select_stmt(target_type: str, target_id: UUID):
     if target_type == "track":
         return (
-            select(Track.likes_count.label("likes_count"), Track.comments_count.label("comments_count"))
+            select(
+                Track.likes_count.label("likes_count"), Track.comments_count.label("comments_count")
+            )
             .where(Track.id == target_id, Track.status == "published")
             .limit(1)
         )
     if target_type == "album":
         return (
-            select(Album.likes_count.label("likes_count"), Album.comments_count.label("comments_count"))
+            select(
+                Album.likes_count.label("likes_count"), Album.comments_count.label("comments_count")
+            )
             .where(Album.id == target_id, Album.status == "published")
             .limit(1)
         )
     return (
-        select(Playlist.likes_count.label("likes_count"), Playlist.comments_count.label("comments_count"))
+        select(
+            Playlist.likes_count.label("likes_count"),
+            Playlist.comments_count.label("comments_count"),
+        )
         .where(Playlist.id == target_id, Playlist.visibility.in_(("public", "unlisted")))
         .limit(1)
     )
@@ -173,7 +192,9 @@ def _target_update_stmt(
     comments_delta: int,
 ):
     likes_expr = func.greatest(literal(0), literal(likes_delta) + _target_likes_column(target_type))
-    comments_expr = func.greatest(literal(0), literal(comments_delta) + _target_comments_column(target_type))
+    comments_expr = func.greatest(
+        literal(0), literal(comments_delta) + _target_comments_column(target_type)
+    )
     table = _target_table(target_type)
     filters = _target_filters(target_type, target_id)
     return (

@@ -4,7 +4,11 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
-from backend.domain.identity.repositories import ComposerProfileReadModel, IdentityAuthRepository, IdentityUserReadModel
+from backend.domain.identity.repositories import (
+    ComposerProfileReadModel,
+    IdentityAuthRepository,
+    IdentityUserReadModel,
+)
 
 COMPOSER_PROFILE_TYPE = "composer_profile"
 COMPOSER_ROLE_CODE = "composer"
@@ -42,7 +46,9 @@ class IdentityProfilesUseCases:
         normalized_bio = bio.strip() if bio is not None else None
         normalized_country_code = country_code.strip().upper() if country_code is not None else None
 
-        self._validate_update_payload(normalized_display_name, normalized_bio, normalized_country_code)
+        self._validate_update_payload(
+            normalized_display_name, normalized_bio, normalized_country_code
+        )
 
         role_codes = await self._repository.get_user_role_codes(user_id)
         if COMPOSER_ROLE_CODE not in role_codes:
@@ -71,7 +77,9 @@ class IdentityProfilesUseCases:
         return IdentityProfileResult(user=user, roles=role_codes, composer_profile=composer_profile)
 
     @staticmethod
-    def _validate_update_payload(display_name: str, bio: str | None, country_code: str | None) -> None:
+    def _validate_update_payload(
+        display_name: str, bio: str | None, country_code: str | None
+    ) -> None:
         if len(display_name) < 2 or len(display_name) > 120:
             raise ValidationError("Display name length should be between 2 and 120 characters.")
         if bio is not None and len(bio) > 2000:

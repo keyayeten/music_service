@@ -51,13 +51,29 @@ def test_like_idempotency_and_like_counter_update(db_session) -> None:
     track_id = _insert_published_track(db_session, "Stage5 Track")
     repository = SqlAlchemySocialRepository(AsyncSessionAdapter(db_session))
 
-    inserted_first = run_async(repository.add_like(user_id=user_id, target_type="track", target_id=track_id))
+    inserted_first = run_async(
+        repository.add_like(user_id=user_id, target_type="track", target_id=track_id)
+    )
     if inserted_first:
-        run_async(repository.add_library_item_for_like(user_id=user_id, target_type="track", target_id=track_id))
-        run_async(repository.update_target_counters(target_type="track", target_id=track_id, likes_delta=1))
-    inserted_second = run_async(repository.add_like(user_id=user_id, target_type="track", target_id=track_id))
+        run_async(
+            repository.add_library_item_for_like(
+                user_id=user_id, target_type="track", target_id=track_id
+            )
+        )
+        run_async(
+            repository.update_target_counters(
+                target_type="track", target_id=track_id, likes_delta=1
+            )
+        )
+    inserted_second = run_async(
+        repository.add_like(user_id=user_id, target_type="track", target_id=track_id)
+    )
     if inserted_second:
-        run_async(repository.update_target_counters(target_type="track", target_id=track_id, likes_delta=1))
+        run_async(
+            repository.update_target_counters(
+                target_type="track", target_id=track_id, likes_delta=1
+            )
+        )
     db_session.commit()
 
     assert inserted_first is True
@@ -83,7 +99,9 @@ def test_like_counter_non_negative_on_unlike(db_session) -> None:
     track_id = _insert_published_track(db_session, "Stage5 Track Unlike")
     repository = SqlAlchemySocialRepository(AsyncSessionAdapter(db_session))
 
-    updated = run_async(repository.update_target_counters(target_type="track", target_id=track_id, likes_delta=-1))
+    updated = run_async(
+        repository.update_target_counters(target_type="track", target_id=track_id, likes_delta=-1)
+    )
     db_session.commit()
 
     assert updated is not None
@@ -96,31 +114,41 @@ def test_comment_reply_parent_relation_and_counter_update(db_session) -> None:
     track_id = _insert_published_track(db_session, "Stage5 Track Comments")
     repository = SqlAlchemySocialRepository(AsyncSessionAdapter(db_session))
 
-    parent = run_async(repository.create_comment(
-        user_id=user_id,
-        target_type="track",
-        target_id=track_id,
-        parent_comment_id=None,
-        body="Root comment",
-        status="visible",
-    ))
-    run_async(repository.update_target_counters(target_type="track", target_id=track_id, comments_delta=1))
-    reply = run_async(repository.create_comment(
-        user_id=user_id,
-        target_type="track",
-        target_id=track_id,
-        parent_comment_id=parent.id,
-        body="Reply comment",
-        status="visible",
-    ))
-    run_async(repository.update_target_counters(target_type="track", target_id=track_id, comments_delta=1))
+    parent = run_async(
+        repository.create_comment(
+            user_id=user_id,
+            target_type="track",
+            target_id=track_id,
+            parent_comment_id=None,
+            body="Root comment",
+            status="visible",
+        )
+    )
+    run_async(
+        repository.update_target_counters(target_type="track", target_id=track_id, comments_delta=1)
+    )
+    reply = run_async(
+        repository.create_comment(
+            user_id=user_id,
+            target_type="track",
+            target_id=track_id,
+            parent_comment_id=parent.id,
+            body="Reply comment",
+            status="visible",
+        )
+    )
+    run_async(
+        repository.update_target_counters(target_type="track", target_id=track_id, comments_delta=1)
+    )
     db_session.commit()
 
     assert reply.parent_comment_id == parent.id
     counters = run_async(repository.get_target("track", track_id))
     assert counters is not None
     assert counters.comments_count == 2
-    listed = run_async(repository.list_comments(target_type="track", target_id=track_id, limit=20, offset=0))
+    listed = run_async(
+        repository.list_comments(target_type="track", target_id=track_id, limit=20, offset=0)
+    )
     assert {item.id for item in listed} == {parent.id, reply.id}
 
 
@@ -131,7 +159,9 @@ def test_like_and_counter_changes_are_transactional(db_session) -> None:
     repository = SqlAlchemySocialRepository(AsyncSessionAdapter(db_session))
 
     run_async(repository.add_like(user_id=user_id, target_type="track", target_id=track_id))
-    run_async(repository.update_target_counters(target_type="track", target_id=track_id, likes_delta=1))
+    run_async(
+        repository.update_target_counters(target_type="track", target_id=track_id, likes_delta=1)
+    )
     db_session.rollback()
 
     like_count = db_session.execute(
@@ -158,14 +188,34 @@ def test_unlike_removes_synced_library_item(db_session) -> None:
     track_id = _insert_published_track(db_session, "Stage5 Track Library Sync")
     repository = SqlAlchemySocialRepository(AsyncSessionAdapter(db_session))
 
-    inserted = run_async(repository.add_like(user_id=user_id, target_type="track", target_id=track_id))
+    inserted = run_async(
+        repository.add_like(user_id=user_id, target_type="track", target_id=track_id)
+    )
     if inserted:
-        run_async(repository.add_library_item_for_like(user_id=user_id, target_type="track", target_id=track_id))
-        run_async(repository.update_target_counters(target_type="track", target_id=track_id, likes_delta=1))
-    removed = run_async(repository.remove_like(user_id=user_id, target_type="track", target_id=track_id))
+        run_async(
+            repository.add_library_item_for_like(
+                user_id=user_id, target_type="track", target_id=track_id
+            )
+        )
+        run_async(
+            repository.update_target_counters(
+                target_type="track", target_id=track_id, likes_delta=1
+            )
+        )
+    removed = run_async(
+        repository.remove_like(user_id=user_id, target_type="track", target_id=track_id)
+    )
     if removed:
-        run_async(repository.remove_library_item_for_like(user_id=user_id, target_type="track", target_id=track_id))
-        run_async(repository.update_target_counters(target_type="track", target_id=track_id, likes_delta=-1))
+        run_async(
+            repository.remove_library_item_for_like(
+                user_id=user_id, target_type="track", target_id=track_id
+            )
+        )
+        run_async(
+            repository.update_target_counters(
+                target_type="track", target_id=track_id, likes_delta=-1
+            )
+        )
     db_session.commit()
 
     library_rows = db_session.execute(

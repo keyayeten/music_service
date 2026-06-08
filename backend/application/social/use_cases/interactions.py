@@ -3,14 +3,21 @@ from __future__ import annotations
 from uuid import UUID
 
 from backend.domain.common.exceptions import ValidationError
-from backend.domain.social.repositories import SOCIAL_TARGET_TYPES, CommentReadModel, SocialRepository, SocialTargetReadModel
+from backend.domain.social.repositories import (
+    SOCIAL_TARGET_TYPES,
+    CommentReadModel,
+    SocialRepository,
+    SocialTargetReadModel,
+)
 
 
 class SocialInteractionUseCases:
     def __init__(self, repository: SocialRepository) -> None:
         self._repository = repository
 
-    async def like(self, actor_user_id: UUID, *, target_type: str, target_id: UUID) -> SocialTargetReadModel:
+    async def like(
+        self, actor_user_id: UUID, *, target_type: str, target_id: UUID
+    ) -> SocialTargetReadModel:
         normalized_target_type = _normalize_target_type(target_type)
         await self._require_target(normalized_target_type, target_id)
         inserted = await self._repository.add_like(
@@ -35,7 +42,9 @@ class SocialInteractionUseCases:
             raise ValidationError("Target is not found.")
         return updated
 
-    async def unlike(self, actor_user_id: UUID, *, target_type: str, target_id: UUID) -> SocialTargetReadModel:
+    async def unlike(
+        self, actor_user_id: UUID, *, target_type: str, target_id: UUID
+    ) -> SocialTargetReadModel:
         normalized_target_type = _normalize_target_type(target_type)
         await self._require_target(normalized_target_type, target_id)
         removed = await self._repository.remove_like(
@@ -95,7 +104,9 @@ class SocialInteractionUseCases:
             raise ValidationError("Target is not found.")
         return comment, updated
 
-    async def get_comment(self, *, target_type: str, target_id: UUID, comment_id: UUID) -> CommentReadModel:
+    async def get_comment(
+        self, *, target_type: str, target_id: UUID, comment_id: UUID
+    ) -> CommentReadModel:
         normalized_target_type = _normalize_target_type(target_type)
         await self._require_target(normalized_target_type, target_id)
         comment = await self._repository.get_comment_by_id(comment_id)
@@ -107,7 +118,9 @@ class SocialInteractionUseCases:
             raise ValidationError("Comment is not visible.")
         return comment
 
-    async def list_comments(self, *, target_type: str, target_id: UUID, limit: int, offset: int) -> list[CommentReadModel]:
+    async def list_comments(
+        self, *, target_type: str, target_id: UUID, limit: int, offset: int
+    ) -> list[CommentReadModel]:
         normalized_target_type = _normalize_target_type(target_type)
         await self._require_target(normalized_target_type, target_id)
         if limit < 1 or limit > 100:

@@ -102,7 +102,9 @@ class LibraryRepository(Protocol):
     async def remove_playlist_track(self, *, playlist_id: UUID, track_id: UUID) -> bool:
         """Remove track from playlist."""
 
-    async def replace_playlist_tracks(self, playlist_id: UUID, tracks: list[PlaylistTrackItemReadModel]) -> None:
+    async def replace_playlist_tracks(
+        self, playlist_id: UUID, tracks: list[PlaylistTrackItemReadModel]
+    ) -> None:
         """Replace all playlist tracks preserving order."""
 
     async def get_playlist_track_count(self, playlist_id: UUID) -> int:

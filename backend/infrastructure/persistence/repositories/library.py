@@ -118,8 +118,12 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
         await self._session.flush()
         return bool(result.rowcount)
 
-    async def replace_playlist_tracks(self, playlist_id: UUID, tracks: list[PlaylistTrackItemReadModel]) -> None:
-        await self._session.execute(delete(PlaylistTrack).where(PlaylistTrack.playlist_id == playlist_id))
+    async def replace_playlist_tracks(
+        self, playlist_id: UUID, tracks: list[PlaylistTrackItemReadModel]
+    ) -> None:
+        await self._session.execute(
+            delete(PlaylistTrack).where(PlaylistTrack.playlist_id == playlist_id)
+        )
         for item in tracks:
             self._session.add(
                 PlaylistTrack(
@@ -134,11 +138,12 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
 
     async def get_playlist_track_count(self, playlist_id: UUID) -> int:
         return (
-            (await self._session.execute(
-                select(func.count()).select_from(PlaylistTrack).where(PlaylistTrack.playlist_id == playlist_id)
-            )).scalar_one()
-            or 0
-        )
+            await self._session.execute(
+                select(func.count())
+                .select_from(PlaylistTrack)
+                .where(PlaylistTrack.playlist_id == playlist_id)
+            )
+        ).scalar_one() or 0
 
     async def track_exists(self, track_id: UUID) -> bool:
         return await self._session.get(Track, track_id) is not None
@@ -196,12 +201,16 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
             return await self._session.get(Playlist, item_id) is not None
         return False
 
-    async def _load_playlist_tracks(self, playlist_ids: list[UUID]) -> dict[UUID, list[PlaylistTrackItemReadModel]]:
-        rows = (await self._session.execute(
-            select(PlaylistTrack)
-            .where(PlaylistTrack.playlist_id.in_(playlist_ids))
-            .order_by(PlaylistTrack.playlist_id.asc(), PlaylistTrack.position.asc())
-        )).scalars()
+    async def _load_playlist_tracks(
+        self, playlist_ids: list[UUID]
+    ) -> dict[UUID, list[PlaylistTrackItemReadModel]]:
+        rows = (
+            await self._session.execute(
+                select(PlaylistTrack)
+                .where(PlaylistTrack.playlist_id.in_(playlist_ids))
+                .order_by(PlaylistTrack.playlist_id.asc(), PlaylistTrack.position.asc())
+            )
+        ).scalars()
         track_map: dict[UUID, list[PlaylistTrackItemReadModel]] = defaultdict(list)
         for row in rows:
             track_map[row.playlist_id].append(
@@ -215,7 +224,9 @@ class SqlAlchemyLibraryRepository(LibraryRepository):
         return track_map
 
 
-def _to_playlist_read_model(playlist: Playlist, track_items: list[PlaylistTrackItemReadModel]) -> PlaylistReadModel:
+def _to_playlist_read_model(
+    playlist: Playlist, track_items: list[PlaylistTrackItemReadModel]
+) -> PlaylistReadModel:
     return PlaylistReadModel(
         id=playlist.id,
         owner_user_id=playlist.owner_user_id,

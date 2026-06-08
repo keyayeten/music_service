@@ -5,7 +5,10 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from backend.application.identity.use_cases.profiles import COMPOSER_PROFILE_TYPE, IdentityProfilesUseCases
+from backend.application.identity.use_cases.profiles import (
+    COMPOSER_PROFILE_TYPE,
+    IdentityProfilesUseCases,
+)
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
 from backend.domain.identity.repositories import ComposerProfileReadModel, IdentityUserReadModel
 from tests.async_tools import run_async
@@ -35,7 +38,9 @@ class _FakeIdentityRepository:
     async def get_role_id_by_code(self, code: str) -> int | None:
         return self.role_id_by_code.get(code)
 
-    async def get_composer_profile_by_user_id(self, user_id: UUID) -> ComposerProfileReadModel | None:
+    async def get_composer_profile_by_user_id(
+        self, user_id: UUID
+    ) -> ComposerProfileReadModel | None:
         if user_id != self.user.id:
             return None
         return self.composer_profile

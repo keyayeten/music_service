@@ -108,6 +108,24 @@ python -m backend.cli create-superuser --email admin@example.com --username admi
 make install
 ```
 
+### 2.1) Линтинг и автоформатирование
+
+Проект использует `Ruff` как единый инструмент для lint + format.
+
+```bash
+make lint         # Проверка линтером
+make lint-fix     # Автоисправления линтера
+make format       # Автоформатирование
+make check-style  # Полная style-проверка (lint + format --check)
+```
+
+Для автопроверки перед каждым commit установите pre-commit hooks:
+
+```bash
+pre-commit install
+pre-commit run --all-files
+```
+
 ### 3) Применить миграции
 
 ```bash
@@ -341,6 +359,10 @@ RBAC правило Stage 7 для write-каталога:
 - `make test-integration` — запустить только integration-тесты.
 - `make test-api` — запустить только api-тесты.
 - `make test-e2e` — запустить только e2e-сценарии.
+- `make lint` — проверить Python-код линтером Ruff.
+- `make lint-fix` — применить автоисправления Ruff.
+- `make format` — отформатировать Python-код через Ruff.
+- `make check-style` — запустить `ruff check` и `ruff format --check`.
 - `make pre-merge` — локальный quality gate (чистая БД + миграции + тесты + smoke health-check).
 - `make cli-hello` — пример запуска CLI-команды на `Typer`.
 - `make fixtures-seed` — сгенерировать массовые фикстуры (append-only).

@@ -2,7 +2,12 @@ from uuid import uuid4
 
 import pytest
 
-from backend.application.identity.security import decode_jwt, hash_password, issue_token_pair, verify_password
+from backend.application.identity.security import (
+    decode_jwt,
+    hash_password,
+    issue_token_pair,
+    verify_password,
+)
 from backend.domain.common.exceptions import AuthenticationError
 
 

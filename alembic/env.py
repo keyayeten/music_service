@@ -2,15 +2,17 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from alembic import context
 from backend.config.settings import get_settings
-from backend.infrastructure.persistence.models import Base
 
 # Import models so metadata includes all tables.
-from backend.infrastructure.persistence.models import identity  # noqa: F401
-from backend.infrastructure.persistence.models import service_heartbeat  # noqa: F401
+from backend.infrastructure.persistence.models import (
+    Base,
+    identity,  # noqa: F401
+    service_heartbeat,  # noqa: F401
+)
 
 config = context.config
 

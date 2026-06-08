@@ -6,8 +6,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_current_identity_user, get_db_session, get_moderation_report_use_cases
-from backend.api.v1.schemas.reports import CreateReportRequest, ListReportsResponse, ReportResponse, UpdateReportStatusRequest
+from backend.api.deps import (
+    get_current_identity_user,
+    get_db_session,
+    get_moderation_report_use_cases,
+)
+from backend.api.v1.schemas.reports import (
+    CreateReportRequest,
+    ListReportsResponse,
+    ReportResponse,
+    UpdateReportStatusRequest,
+)
 from backend.application.moderation.use_cases.reports import ModerationReportUseCases
 from backend.domain.common.exceptions import AuthorizationError, ValidationError
 from backend.domain.identity.repositories import IdentityUserReadModel
@@ -33,7 +42,11 @@ async def create_report(
         await db_session.commit()
     except ValueError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", "Target id should be a valid UUID value.") from exc
+        raise _http_error(
+            status.HTTP_400_BAD_REQUEST,
+            "validation_error",
+            "Target id should be a valid UUID value.",
+        ) from exc
     except ValidationError as exc:
         await db_session.rollback()
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
@@ -42,7 +55,9 @@ async def create_report(
         raise _http_error(status.HTTP_403_FORBIDDEN, "authorization_error", exc.message) from exc
     except IntegrityError as exc:
         await db_session.rollback()
-        raise _http_error(status.HTTP_409_CONFLICT, "conflict_error", "Report constraints violated.") from exc
+        raise _http_error(
+            status.HTTP_409_CONFLICT, "conflict_error", "Report constraints violated."
+        ) from exc
     return _to_report_response(result)
 
 
@@ -54,7 +69,9 @@ async def list_reports(
     use_cases: ModerationReportUseCases = Depends(get_moderation_report_use_cases),
 ) -> ListReportsResponse:
     try:
-        reports = await use_cases.list_reports(user.id, status=status_filter, target_type=target_type)
+        reports = await use_cases.list_reports(
+            user.id, status=status_filter, target_type=target_type
+        )
     except ValidationError as exc:
         raise _http_error(status.HTTP_400_BAD_REQUEST, "validation_error", exc.message) from exc
     except AuthorizationError as exc:
@@ -86,7 +103,9 @@ async def update_report_status(
     db_session: AsyncSession = Depends(get_db_session),
 ) -> ReportResponse:
     try:
-        result = await use_cases.set_report_status(user.id, report_id=report_id, target_status=payload.status)
+        result = await use_cases.set_report_status(
+            user.id, report_id=report_id, target_status=payload.status
+        )
         await db_session.commit()
     except ValidationError as exc:
         await db_session.rollback()

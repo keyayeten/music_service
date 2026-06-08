@@ -2,7 +2,6 @@ import json
 import time
 from urllib.request import urlopen
 
-
 URLS = (
     "http://127.0.0.1:8000/health",
     "http://127.0.0.1:8000/api/v1/health",

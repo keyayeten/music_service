@@ -82,7 +82,9 @@ class _FakeSocialRepository:
         items = [
             item
             for item in self.comments.values()
-            if item.target_type == target_type and item.target_id == target_id and item.status == "visible"
+            if item.target_type == target_type
+            and item.target_id == target_id
+            and item.status == "visible"
         ]
         items.sort(key=lambda item: item.created_at, reverse=True)
         return items[offset : offset + limit]
@@ -106,12 +108,28 @@ class _FakeSocialRepository:
         )
         return self.target
 
-    async def add_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
-        section = "favorites" if target_type == "track" else "albums" if target_type == "album" else "playlists"
+    async def add_library_item_for_like(
+        self, *, user_id: UUID, target_type: str, target_id: UUID
+    ) -> None:
+        section = (
+            "favorites"
+            if target_type == "track"
+            else "albums"
+            if target_type == "album"
+            else "playlists"
+        )
         self.library_items.add((user_id, target_type, target_id, section))
 
-    async def remove_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
-        section = "favorites" if target_type == "track" else "albums" if target_type == "album" else "playlists"
+    async def remove_library_item_for_like(
+        self, *, user_id: UUID, target_type: str, target_id: UUID
+    ) -> None:
+        section = (
+            "favorites"
+            if target_type == "track"
+            else "albums"
+            if target_type == "album"
+            else "playlists"
+        )
         self.library_items.discard((user_id, target_type, target_id, section))
 
 
@@ -120,12 +138,21 @@ def test_like_is_idempotent_and_counter_updates_once() -> None:
     repository = _FakeSocialRepository()
     use_cases = SocialInteractionUseCases(repository=repository)
 
-    first = run_async(use_cases.like(repository.user_id, target_type="track", target_id=repository.target_id))
-    second = run_async(use_cases.like(repository.user_id, target_type="track", target_id=repository.target_id))
+    first = run_async(
+        use_cases.like(repository.user_id, target_type="track", target_id=repository.target_id)
+    )
+    second = run_async(
+        use_cases.like(repository.user_id, target_type="track", target_id=repository.target_id)
+    )
 
     assert first.likes_count == 1
     assert second.likes_count == 1
-    assert (repository.user_id, "track", repository.target_id, "favorites") in repository.library_items
+    assert (
+        repository.user_id,
+        "track",
+        repository.target_id,
+        "favorites",
+    ) in repository.library_items
 
 
 @pytest.mark.unit
@@ -133,7 +160,9 @@ def test_unlike_never_makes_counter_negative() -> None:
     repository = _FakeSocialRepository()
     use_cases = SocialInteractionUseCases(repository=repository)
 
-    result = run_async(use_cases.unlike(repository.user_id, target_type="track", target_id=repository.target_id))
+    result = run_async(
+        use_cases.unlike(repository.user_id, target_type="track", target_id=repository.target_id)
+    )
 
     assert result.likes_count == 0
 
@@ -155,13 +184,15 @@ def test_comment_reply_requires_parent_from_same_target() -> None:
     use_cases = SocialInteractionUseCases(repository=repository)
 
     with pytest.raises(ValidationError):
-        run_async(use_cases.comment(
-            repository.user_id,
-            target_type="track",
-            target_id=repository.target_id,
-            body="reply",
-            parent_comment_id=parent.id,
-        ))
+        run_async(
+            use_cases.comment(
+                repository.user_id,
+                target_type="track",
+                target_id=repository.target_id,
+                body="reply",
+                parent_comment_id=parent.id,
+            )
+        )
 
 
 @pytest.mark.unit
@@ -197,8 +228,16 @@ def test_get_and_list_comments_return_only_target_comments() -> None:
         )
     )
 
-    got = run_async(use_cases.get_comment(target_type="track", target_id=repository.target_id, comment_id=comment.id))
-    listed = run_async(use_cases.list_comments(target_type="track", target_id=repository.target_id, limit=20, offset=0))
+    got = run_async(
+        use_cases.get_comment(
+            target_type="track", target_id=repository.target_id, comment_id=comment.id
+        )
+    )
+    listed = run_async(
+        use_cases.list_comments(
+            target_type="track", target_id=repository.target_id, limit=20, offset=0
+        )
+    )
 
     assert got.id == comment.id
     assert [item.id for item in listed] == [comment.id]

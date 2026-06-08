@@ -74,8 +74,12 @@ class SocialRepository(Protocol):
     ) -> SocialTargetReadModel | None:
         """Apply denormalized counter updates with non-negative guard."""
 
-    async def add_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
+    async def add_library_item_for_like(
+        self, *, user_id: UUID, target_type: str, target_id: UUID
+    ) -> None:
         """Synchronize like into library sections idempotently."""
 
-    async def remove_library_item_for_like(self, *, user_id: UUID, target_type: str, target_id: UUID) -> None:
+    async def remove_library_item_for_like(
+        self, *, user_id: UUID, target_type: str, target_id: UUID
+    ) -> None:
         """Synchronize unlike removal from library sections idempotently."""

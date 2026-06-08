@@ -55,7 +55,9 @@ def test_me_returns_401_without_token(client, db_session, redis_client) -> None:
 
 
 @pytest.mark.api
-def test_login_returns_predictable_error_for_invalid_credentials(client, db_session, redis_client) -> None:
+def test_login_returns_predictable_error_for_invalid_credentials(
+    client, db_session, redis_client
+) -> None:
     response = client.post(
         "/api/v1/auth/login",
         json={"login": "unknown_user", "password": "InvalidPassword123!"},

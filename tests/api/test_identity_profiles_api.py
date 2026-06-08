@@ -54,7 +54,9 @@ def test_get_my_profile_returns_identity_payload(client, db_session, redis_clien
 
 
 @pytest.mark.api
-def test_update_my_profile_returns_403_without_composer_role(client, db_session, redis_client) -> None:
+def test_update_my_profile_returns_403_without_composer_role(
+    client, db_session, redis_client
+) -> None:
     signup_payload = _signup(client)
     access_token = signup_payload["tokens"]["access_token"]
 
@@ -85,7 +87,9 @@ def test_update_my_profile_validates_payload(client, db_session, redis_client) -
 
 
 @pytest.mark.api
-def test_update_my_profile_creates_composer_profile_and_link(client, db_session, redis_client) -> None:
+def test_update_my_profile_creates_composer_profile_and_link(
+    client, db_session, redis_client
+) -> None:
     signup_payload = _signup(client)
     user_id = signup_payload["user"]["id"]
     access_token = signup_payload["tokens"]["access_token"]
@@ -102,15 +106,19 @@ def test_update_my_profile_creates_composer_profile_and_link(client, db_session,
     assert body["composer_profile"]["display_name"] == "Composer Name"
     assert body["composer_profile"]["country_code"] == "UA"
 
-    role_profile_row = db_session.execute(
-        text(
-            """
+    role_profile_row = (
+        db_session.execute(
+            text(
+                """
             SELECT profile_type, profile_id
             FROM user_role_profiles
             WHERE user_id = :user_id
             """
-        ),
-        {"user_id": user_id},
-    ).mappings().one()
+            ),
+            {"user_id": user_id},
+        )
+        .mappings()
+        .one()
+    )
     assert role_profile_row["profile_type"] == "composer_profile"
     assert str(role_profile_row["profile_id"]) == body["composer_profile"]["id"]

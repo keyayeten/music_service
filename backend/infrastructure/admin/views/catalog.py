@@ -26,14 +26,24 @@ class TrackAdmin(ModelView, model=Track):
     column_list = [Track.id, Track.title, Track.status, Track.duration_seconds, Track.published_at]
     column_searchable_list = [Track.title]
     column_sortable_list = [Track.title, Track.status, Track.published_at, Track.created_at]
-    form_excluded_columns = [Track.created_at, Track.updated_at, Track.deleted_at, *_COUNTER_COLUMNS]
+    form_excluded_columns = [
+        Track.created_at,
+        Track.updated_at,
+        Track.deleted_at,
+        *_COUNTER_COLUMNS,
+    ]
 
 
 class TrackAuthorAdmin(ModelView, model=TrackAuthor):
     name = "Track author"
     name_plural = "Track authors"
     category = "Catalog"
-    column_list = [TrackAuthor.track_id, TrackAuthor.composer_profile_id, TrackAuthor.position, TrackAuthor.contribution_role]
+    column_list = [
+        TrackAuthor.track_id,
+        TrackAuthor.composer_profile_id,
+        TrackAuthor.position,
+        TrackAuthor.contribution_role,
+    ]
 
 
 class AlbumAdmin(ModelView, model=Album):
@@ -42,7 +52,13 @@ class AlbumAdmin(ModelView, model=Album):
     category = "Catalog"
     column_list = [Album.id, Album.title, Album.status, Album.release_date, Album.owner_composer_id]
     column_searchable_list = [Album.title]
-    form_excluded_columns = [Album.created_at, Album.updated_at, Album.deleted_at, "likes_count", "comments_count"]
+    form_excluded_columns = [
+        Album.created_at,
+        Album.updated_at,
+        Album.deleted_at,
+        "likes_count",
+        "comments_count",
+    ]
 
 
 class AlbumTrackAdmin(ModelView, model=AlbumTrack):
@@ -56,7 +72,13 @@ class ExternalLinkAdmin(ModelView, model=ExternalLink):
     name = "External link"
     name_plural = "External links"
     category = "Catalog"
-    column_list = [ExternalLink.id, ExternalLink.entity_type, ExternalLink.entity_id, ExternalLink.service, ExternalLink.url]
+    column_list = [
+        ExternalLink.id,
+        ExternalLink.entity_type,
+        ExternalLink.entity_id,
+        ExternalLink.service,
+        ExternalLink.url,
+    ]
     column_searchable_list = [ExternalLink.url, ExternalLink.service]
     form_excluded_columns = [ExternalLink.created_at]
 

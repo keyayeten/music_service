@@ -8,4 +8,12 @@ from backend.api.v1.routes.profiles import router as profiles_router
 from backend.api.v1.routes.reports import router as reports_router
 from backend.api.v1.routes.social import router as social_router
 
-__all__ = ["health_router", "auth_router", "profiles_router", "catalog_router", "library_router", "social_router", "reports_router"]
+__all__ = [
+    "health_router",
+    "auth_router",
+    "profiles_router",
+    "catalog_router",
+    "library_router",
+    "social_router",
+    "reports_router",
+]

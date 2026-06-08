@@ -13,7 +13,9 @@ def test_identity_roles_seed_is_idempotent(db_session) -> None:
     seed_identity_roles(db_session)
     db_session.commit()
 
-    roles_count = db_session.execute(text("SELECT COUNT(*) FROM roles WHERE code IN ('admin','moderator','composer','user')")).scalar_one()
+    roles_count = db_session.execute(
+        text("SELECT COUNT(*) FROM roles WHERE code IN ('admin','moderator','composer','user')")
+    ).scalar_one()
     assert roles_count == 4
 
 

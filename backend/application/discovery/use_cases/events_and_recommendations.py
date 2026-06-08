@@ -17,21 +17,27 @@ class DiscoveryUseCases:
     async def record_view_events(self, actor_user_id: UUID, *, track_ids: list[UUID]) -> None:
         await self._record_event_for_tracks(actor_user_id, "view", track_ids)
 
-    async def record_like_events(self, actor_user_id: UUID, *, target_type: str, target_id: UUID) -> None:
+    async def record_like_events(
+        self, actor_user_id: UUID, *, target_type: str, target_id: UUID
+    ) -> None:
         track_ids = await self._repository.get_track_ids_for_target(
             target_type=_normalize_target_type(target_type),
             target_id=target_id,
         )
         await self._record_event_for_tracks(actor_user_id, "like", track_ids)
 
-    async def record_save_events(self, actor_user_id: UUID, *, item_type: str, item_id: UUID) -> None:
+    async def record_save_events(
+        self, actor_user_id: UUID, *, item_type: str, item_id: UUID
+    ) -> None:
         track_ids = await self._repository.get_track_ids_for_item(
             item_type=_normalize_item_type(item_type),
             item_id=item_id,
         )
         await self._record_event_for_tracks(actor_user_id, "save", track_ids)
 
-    async def record_comment_events(self, actor_user_id: UUID, *, target_type: str, target_id: UUID) -> None:
+    async def record_comment_events(
+        self, actor_user_id: UUID, *, target_type: str, target_id: UUID
+    ) -> None:
         track_ids = await self._repository.get_track_ids_for_target(
             target_type=_normalize_target_type(target_type),
             target_id=target_id,
@@ -43,7 +49,9 @@ class DiscoveryUseCases:
     async def record_playlist_add_event(self, actor_user_id: UUID, *, track_id: UUID) -> None:
         await self._record_event_for_tracks(actor_user_id, "playlist_add", [track_id])
 
-    async def record_external_click_event(self, actor_user_id: UUID, *, external_link_id: UUID) -> None:
+    async def record_external_click_event(
+        self, actor_user_id: UUID, *, external_link_id: UUID
+    ) -> None:
         track_id = await self._repository.get_track_id_by_external_link_id(external_link_id)
         if track_id is None:
             raise ValidationError("External link should reference a track.")
@@ -68,12 +76,16 @@ class DiscoveryUseCases:
         normalized_limit = _normalize_limit(limit)
         if actor_user_id is None:
             return await self._repository.get_top_published_tracks(limit=normalized_limit)
-        personalized = await self._repository.get_user_recommended_tracks(user_id=actor_user_id, limit=normalized_limit)
+        personalized = await self._repository.get_user_recommended_tracks(
+            user_id=actor_user_id, limit=normalized_limit
+        )
         if personalized:
             return personalized
         return await self._repository.get_top_published_tracks(limit=normalized_limit)
 
-    async def _record_event_for_tracks(self, actor_user_id: UUID, event_type: str, track_ids: list[UUID]) -> None:
+    async def _record_event_for_tracks(
+        self, actor_user_id: UUID, event_type: str, track_ids: list[UUID]
+    ) -> None:
         normalized_event_type = _normalize_event_type(event_type)
         if not track_ids:
             raise ValidationError("Could not resolve tracks for event source.")

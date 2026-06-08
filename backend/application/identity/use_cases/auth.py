@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from uuid import UUID
 
-from backend.application.identity.security import decode_jwt, hash_password, issue_token_pair, verify_password
+from backend.application.identity.security import (
+    decode_jwt,
+    hash_password,
+    issue_token_pair,
+    verify_password,
+)
 from backend.domain.common.exceptions import AuthenticationError, ConflictError, ValidationError
 from backend.domain.identity.repositories import IdentityAuthRepository, IdentityUserReadModel
 
@@ -37,14 +42,22 @@ class IdentityAuthUseCases:
     async def signup(self, email: str, username: str, password: str) -> AuthResult:
         normalized_email = email.strip().lower()
         normalized_username = username.strip()
-        logger.info("Signup attempt username=%s email=%s", normalized_username, _mask_email(normalized_email))
+        logger.info(
+            "Signup attempt username=%s email=%s",
+            normalized_username,
+            _mask_email(normalized_email),
+        )
         self._validate_signup_fields(normalized_email, normalized_username, password)
 
         if await self._repository.get_user_by_email(normalized_email):
-            logger.info("Signup rejected: email already registered email=%s", _mask_email(normalized_email))
+            logger.info(
+                "Signup rejected: email already registered email=%s", _mask_email(normalized_email)
+            )
             raise ConflictError("Email is already registered.")
         if await self._repository.get_user_by_username(normalized_username):
-            logger.info("Signup rejected: username already registered username=%s", normalized_username)
+            logger.info(
+                "Signup rejected: username already registered username=%s", normalized_username
+            )
             raise ConflictError("Username is already registered.")
 
         password_hash = hash_password(password)

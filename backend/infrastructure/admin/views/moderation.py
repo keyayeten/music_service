@@ -7,7 +7,14 @@ class ReportAdmin(ModelView, model=Report):
     name = "Report"
     name_plural = "Reports"
     category = "Moderation"
-    column_list = [Report.id, Report.reporter_user_id, Report.target_type, Report.target_id, Report.status, Report.created_at]
+    column_list = [
+        Report.id,
+        Report.reporter_user_id,
+        Report.target_type,
+        Report.target_id,
+        Report.status,
+        Report.created_at,
+    ]
     column_sortable_list = [Report.status, Report.created_at]
     form_excluded_columns = [Report.created_at, Report.updated_at]
 

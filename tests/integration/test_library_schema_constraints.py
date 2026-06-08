@@ -63,7 +63,12 @@ def test_playlist_tracks_unique_position_constraint(db_session) -> None:
             VALUES (:playlist_id, :track_id, :added_by_user_id, :position)
             """
         ),
-        {"playlist_id": playlist_id, "track_id": first_track_id, "added_by_user_id": owner_id, "position": 1},
+        {
+            "playlist_id": playlist_id,
+            "track_id": first_track_id,
+            "added_by_user_id": owner_id,
+            "position": 1,
+        },
     )
     db_session.commit()
 
@@ -75,7 +80,12 @@ def test_playlist_tracks_unique_position_constraint(db_session) -> None:
                 VALUES (:playlist_id, :track_id, :added_by_user_id, :position)
                 """
             ),
-            {"playlist_id": playlist_id, "track_id": second_track_id, "added_by_user_id": owner_id, "position": 1},
+            {
+                "playlist_id": playlist_id,
+                "track_id": second_track_id,
+                "added_by_user_id": owner_id,
+                "position": 1,
+            },
         )
         db_session.commit()
     db_session.rollback()
@@ -102,7 +112,12 @@ def test_playlist_tracks_disallow_duplicate_track_in_playlist(db_session) -> Non
             VALUES (:playlist_id, :track_id, :added_by_user_id, :position)
             """
         ),
-        {"playlist_id": playlist_id, "track_id": track_id, "added_by_user_id": owner_id, "position": 1},
+        {
+            "playlist_id": playlist_id,
+            "track_id": track_id,
+            "added_by_user_id": owner_id,
+            "position": 1,
+        },
     )
     db_session.commit()
 
@@ -114,7 +129,12 @@ def test_playlist_tracks_disallow_duplicate_track_in_playlist(db_session) -> Non
                 VALUES (:playlist_id, :track_id, :added_by_user_id, :position)
                 """
             ),
-            {"playlist_id": playlist_id, "track_id": track_id, "added_by_user_id": owner_id, "position": 2},
+            {
+                "playlist_id": playlist_id,
+                "track_id": track_id,
+                "added_by_user_id": owner_id,
+                "position": 2,
+            },
         )
         db_session.commit()
     db_session.rollback()

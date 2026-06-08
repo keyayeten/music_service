@@ -20,7 +20,6 @@ from backend.api.v1.schemas.catalog import (
     UpdateAlbumRequest,
     UpdateTrackRequest,
 )
-from backend.api.v1.schemas.profiles import ComposerProfileResponse, MyProfileResponse, UpdateMyProfileRequest
 from backend.api.v1.schemas.library import (
     AddLibraryItemRequest,
     AddPlaylistTrackRequest,
@@ -32,6 +31,17 @@ from backend.api.v1.schemas.library import (
     ReorderPlaylistTracksRequest,
     UpdatePlaylistRequest,
 )
+from backend.api.v1.schemas.profiles import (
+    ComposerProfileResponse,
+    MyProfileResponse,
+    UpdateMyProfileRequest,
+)
+from backend.api.v1.schemas.reports import (
+    CreateReportRequest,
+    ListReportsResponse,
+    ReportResponse,
+    UpdateReportStatusRequest,
+)
 from backend.api.v1.schemas.social import (
     CommentResponse,
     CommentWithCountersResponse,
@@ -39,7 +49,6 @@ from backend.api.v1.schemas.social import (
     LikeResponse,
     ListCommentsResponse,
 )
-from backend.api.v1.schemas.reports import CreateReportRequest, ListReportsResponse, ReportResponse, UpdateReportStatusRequest
 
 __all__ = [
     "SignupRequest",
